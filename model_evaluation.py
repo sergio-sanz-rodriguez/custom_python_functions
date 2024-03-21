@@ -64,7 +64,7 @@ def train_crossval_predict_score(
     if grid_search:
         grid_model = GridSearchCV(model, param_grid=hyperparams, cv=cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs)
     else:        
-        grid_model = RandomizedSearchCV(model, param_grid=hyperparams, cv=cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs)
+        grid_model = RandomizedSearchCV(model, param_distributions=hyperparams, cv=cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs)
     
     # Fit
     grid_model.fit(X_train, y_train)
@@ -80,52 +80,6 @@ def train_crossval_predict_score(
     return best_model
 
 
-# Plot formatting
-#plt.style.use('fivethirtyeight')
-#plt.rcParams['font.size'] = 18
-
-#def evaluate_model(predictions, probs, train_predictions, train_probs):
-#    """Compare machine learning model to baseline performance.
-#    Computes statistics and shows ROC curve."""
-#    
-#    baseline = {}
-#    
-#    baseline['recall'] = recall_score(test_labels, 
-#                                     [1 for _ in range(len(test_labels))])
-#    baseline['precision'] = precision_score(test_labels, 
-#                                      [1 for _ in range(len(test_labels))])
-#    baseline['roc'] = 0.5
-#    
-#    results = {}
-#    
-#    results['recall'] = recall_score(test_labels, predictions)
-#    results['precision'] = precision_score(test_labels, predictions)
-#    results['roc'] = roc_auc_score(test_labels, probs)
-#    
-#    train_results = {}
-#    train_results['recall'] = recall_score(train_labels, train_predictions)
-#    train_results['precision'] = precision_score(train_labels, train_predictions)
-#    train_results['roc'] = roc_auc_score(train_labels, train_probs)
-#    
-#    for metric in ['recall', 'precision', 'roc']:
-#        print(f'{metric.capitalize()} Baseline: {round(baseline[metric], 2)} Test: {round(results[metric], 2)} Train: {round(train_results[metric], 2)}')
-#    
-#    # Calculate false positive rates and true positive rates
-#    base_fpr, base_tpr, _ = roc_curve(test_labels, [1 for _ in range(len(test_labels))])
-#    model_fpr, model_tpr, _ = roc_curve(test_labels, probs)
-#
-#    plt.figure(figsize = (8, 6))
-#    plt.rcParams['font.size'] = 16
-#    
-#    # Plot both curves
-#    plt.plot(base_fpr, base_tpr, 'b', label = 'baseline')
-#    plt.plot(model_fpr, model_tpr, 'r', label = 'model')
-#    plt.legend();
-#    plt.xlabel('False Positive Rate'); 
-#    plt.ylabel('True Positive Rate'); plt.title('ROC Curves');
-#    plt.show();
-
-
 def plot_confusion_matrix(cm, classes,
                           normalize=False,
                           title='Confusion matrix',
@@ -135,6 +89,11 @@ def plot_confusion_matrix(cm, classes,
     Normalization can be applied by setting `normalize=True`.
     Source: http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
     """
+    # Confusion matrix
+    #cm = confusion_matrix(test_labels, rf_predictions)
+    #plot_confusion_matrix(cm, classes = ['Poor Health', 'Good Health'],
+    #                      title = 'Health Confusion Matrix')
+
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
         print("Normalized confusion matrix")
@@ -166,10 +125,6 @@ def plot_confusion_matrix(cm, classes,
     plt.ylabel('True label', size = 18)
     plt.xlabel('Predicted label', size = 18)
 
-# Confusion matrix
-#cm = confusion_matrix(test_labels, rf_predictions)
-#plot_confusion_matrix(cm, classes = ['Poor Health', 'Good Health'],
-#                      title = 'Health Confusion Matrix')
 
 def plot_correlation(df, method='pearson', figsize=(10,10)):
     correlations = df.corr(method=method)
@@ -191,3 +146,21 @@ def plot_distributions(df):
         fig.set_size_inches(15, 5)
         plt.suptitle(feature)  # Adds a title to the entire figure
         plt.show()
+
+def plot_roc_curves(model_dic, X_test, y_test, figsize=(6,5)):
+
+    fig = plt.figure(figsize=figsize)
+    ax = fig.add_subplot()
+
+    for key, _ in model_dic.items():
+
+        model = model_dic[key][0]
+
+        fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test)[:,1])
+        plt.plot(fpr, tpr, model_dic[key][1], label=key)
+
+    plt.plot([0,1],[0,1],'k:',label='random')
+    plt.plot([0,0,1,1],[0,1,1,1],'k--',label='perfect')
+    plt.xlabel('False Positive Rate (1 - Specifity)')
+    plt.ylabel('True Positive Rate (Recall)')
+    
