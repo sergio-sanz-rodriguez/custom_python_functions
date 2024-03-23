@@ -14,29 +14,48 @@ from sklearn.metrics import ( confusion_matrix,
 
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
-def predict_and_print_scores(model,             #Trained model
-                             X_train,           #Training data with features
-                             y_train,           #Traning data with labels or targets
-                             X_test,            #Testing data with features
-                             y_test,            #Testind data with labels or targets                             
-                             training=True,     #True: print scores on the traning set
-                             test=True,         #True: print scores on the testing set
-                             accuracy=True,     #True: print accuracy_score()
-                             recall=True,       #True: print recall_score()
-                             precision=True,    #True: print precision_score()
-                             fbeta=[True, 1.0], #[True, beta]: print fbeta_score. If beta = 1.0: f1_score
-                             roc_auc=True,      #True: print roc_auc_score()
-                             matrix=True,       #True: plot confusion matrix
-                             figsize=(3,2),     #Figure size for the confusion matrix
-                             cmap='YlGn'):      #Color map for the confusion matrix
+def predict_and_print_scores(model,
+                             X_train,
+                             y_train,
+                             X_test,
+                             y_test,                             
+                             training=True,
+                             test=True,
+                             accuracy=True,
+                             recall=True,
+                             precision=True,
+                             fbeta=[True, 1.0],
+                             roc_auc=True,
+                             matrix=True,
+                             figsize=(3,2),
+                             cmap='YlGn'):
     
     '''
     Given an already trained model, this function predicts and print some performance scores training and/or testing data.
     The supported metrics are: accuracy, recall, precision, fbeta_score (and f1_score if beta = 1.0), roc_auc.
     If the input parameter "matrix" is set to True, the function plot the confusion matrix with a color map given in "cmap".
+
+    model             Trained model
+    X_train           Training data with features
+    y_train           Traning data with labels or targets
+    X_test            Testing data with features
+    y_test            Testind data with labels or targets                             
+    training=True     True: print scores on the traning set
+    test=True         True: print scores on the testing set
+    accuracy=True     True: print accuracy_score()
+    recall=True       True: print recall_score()
+    precision=True    True: print precision_score()
+    fbeta=[True, 1.0] [True, beta]: print fbeta_score. If beta = 1.0: f1_score
+    roc_auc=True      True: print roc_auc_score()
+    matrix=True       True: plot confusion matrix
+    figsize=(3,2)     Figure size for the confusion matrix
+    cmap='YlGn')      Color map for the confusion matrix
+    
     Posible color maps: 'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
                         'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
                         'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn'
+    
+    Returns: fig, ax: the figure objects of the cunfusion matrix (if enabled)
     '''
 
     # Prediction
