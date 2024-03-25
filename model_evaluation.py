@@ -84,7 +84,7 @@ def predict_and_print_scores(model,
             print("Precision on test set:", round(precision_score(y_test, y_pred_test), 2))
         print("--------"*5)
 
-    if fbeta_score:
+    if fbeta[0]:
         if training:
             print("fbeta_score on training set:", round(fbeta_score(y_train, y_pred_train, beta=fbeta[1]), 2))
         if test:
@@ -102,15 +102,16 @@ def predict_and_print_scores(model,
     
     # Plot confusion matrix
         
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot()
+ 
     if matrix:
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot()
         sns.heatmap(confusion_matrix(y_test, y_pred_test), annot=True, cmap=cmap);
         plt.title('Test Set')
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
     
-    return fig, ax
+        return fig, ax
 
 
 
