@@ -126,6 +126,7 @@ def train_crossval_predict_score(model,
                                  verbose=0,
                                  n_jobs=-1,
                                  cross_val='full',
+                                 random_state='None',
                                  training=True,
                                  test=True,
                                  accuracy=True,
@@ -153,7 +154,8 @@ def train_crossval_predict_score(model,
     scoring='accuracy'    #Scoring method
     verbose=0             #Verbose
     n_jobs=-1             #Number of jobs in parallel
-    cross_val='full'      #'Full'/'full': Apply GridSearchCV. 'Random'/'random': Apply RandomSearchCV                                 
+    cross_val='full'      #'Full'/'full': Apply GridSearchCV. 'Random'/'random': Apply RandomSearchCV
+    random_state          #'None' or an integer
     training=True         #True: print scores on the traning set
     test=True             #True: print scores on the testing set
     accuracy=True         #True: print accuracy_score()
@@ -178,7 +180,7 @@ def train_crossval_predict_score(model,
     if cross_val == 'Full' or cross_val == 'full':
         grid_model = GridSearchCV(model, param_grid=hyperparams, cv=cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs)
     elif cross_val == 'Random' or cross_val == 'random':        
-        grid_model = RandomizedSearchCV(model, param_distributions=hyperparams, cv=cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs)
+        grid_model = RandomizedSearchCV(model, param_distributions=hyperparams, cv=cv, scoring=scoring, random_state=random_state, verbose=verbose, n_jobs=n_jobs)
         
     # Fit
     grid_model.fit(X_train, y_train)
