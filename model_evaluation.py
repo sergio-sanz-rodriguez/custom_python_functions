@@ -335,12 +335,12 @@ def find_roc_threshold_f1(model, X, y):
 
     best_threshold = 0.5
     best_score = 0.0
-    for i in range(1 , 10, 0.5):
-        pred_tmp = np.where(pred_ >= (i/10) , 1 ,0)
-        cost = fbeta_score(pred_tmp, y, 2)
-        if(cost > best_score):
+    for value in np.arange(1, 10, 0.5):
+        pred_tmp = np.where(pred_ >= float(value/10), 1, 0)
+        cost = f1_score(y, pred_tmp)
+        if cost > best_score:
             best_score = cost
-            best_threshold = i/10
+            best_threshold = float(value/10)
       
     return best_threshold, best_score 
 
