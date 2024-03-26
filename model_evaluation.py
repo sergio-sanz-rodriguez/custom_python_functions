@@ -185,6 +185,7 @@ def train_crossval_predict_score(model,
     # Fit
     grid_model.fit(X_train, y_train)
     best_model = grid_model.best_estimator_
+    best_params = grid_model.best_params_
     print('Best params:', grid_model.best_params_)
     print("--------"*5)
     
@@ -205,7 +206,7 @@ def train_crossval_predict_score(model,
                                        figsize=figsize,
                                        cmap=cmap)
     
-    return best_model, fig, ax
+    return best_model, best_params, fig, ax
 
 
 def plot_confusion_matrix(cm, classes,
