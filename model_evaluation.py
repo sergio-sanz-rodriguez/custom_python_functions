@@ -155,7 +155,7 @@ def train_crossval_predict_score(model,
     verbose=0             #Verbose
     n_jobs=-1             #Number of jobs in parallel
     cross_val='full'      #'Full'/'full': Apply GridSearchCV. 'Random'/'random': Apply RandomSearchCV
-    random_state          #'None' or an integer
+    random_state          #Random state parameter for RandomSearchCV: 'None' or an integer
     training=True         #True: print scores on the traning set
     test=True             #True: print scores on the testing set
     accuracy=True         #True: print accuracy_score()
