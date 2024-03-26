@@ -10,7 +10,8 @@ from sklearn.metrics import ( confusion_matrix,
                              precision_score,
                              roc_curve,
                              roc_auc_score,
-                             fbeta_score )
+                             fbeta_score,
+                             f1_score)
 
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
@@ -301,3 +302,60 @@ def plot_roc_curves(model_dic, X_test, y_test, figsize=(6,5)):
     plt.show()
 
     return fig, ax
+
+def find_roc_threshold_tpr(model, X, y, value_target):
+
+    fpr, tpr, thr = roc_curve(y, model.predict_proba(X)[:,1])
+
+    old_diff = 100000000
+    for index, value in enumerate(tpr):
+        new_diff = abs(value_target - value)
+        if new_diff < old_diff:
+            false_pos_rate = fpr[index]
+            threshold = thr[index]
+
+    return false_pos_rate, threshold
+
+def find_roc_threshold_fpr(model, X, y, value_target):
+
+    fpr, tpr, thr = roc_curve(y, model.predict_proba(X)[:,1])
+
+    old_diff = 100000000
+    for index, value in enumerate(fpr):
+        new_diff = abs(value_target - value)
+        if new_diff < old_diff:
+            true_pos_rate = tpr[index]
+            threshold = thr[index]
+
+    return true_pos_rate, threshold
+
+def find_roc_threshold_f1(model, X, y):
+    
+    pred_ = model.predict_proba(X)[:,1]
+
+    best_threshold = 0.5
+    best_score = 0.0
+    for i in range(1 , 10, 0.5):
+        pred_tmp = np.where(pred_ >= (i/10) , 1 ,0)
+        cost = fbeta_score(pred_tmp, y, 2)
+        if(cost > best_score):
+            best_score = cost
+            best_threshold = i/10
+      
+    return best_threshold, best_score 
+
+def find_roc_threshold_accuracy(model, X, y):
+    
+    pred_ = model.predict_proba(X)[:,1]
+    #fpr, tpr, thr = roc_curve(y, model.predict_proba(X)[:,1])
+
+    best_threshold = 0.5
+    best_score = 0.0
+    for i in range(1 , 10, 0.5):
+        pred_tmp = np.where(pred_ >= (i/10) , 1 ,0)
+        cost = accuracy_score(pred_tmp, y)
+        if(cost > best_score):
+            best_score = cost
+            best_threshold = i/10
+      
+    return best_threshold, best_score 
