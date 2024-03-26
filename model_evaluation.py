@@ -313,6 +313,7 @@ def find_roc_threshold_tpr(model, X, y, value_target):
         if new_diff < old_diff:
             false_pos_rate = fpr[index]
             threshold = thr[index]
+            old_diff = new_diff
 
     return false_pos_rate, threshold
 
@@ -326,6 +327,7 @@ def find_roc_threshold_fpr(model, X, y, value_target):
         if new_diff < old_diff:
             true_pos_rate = tpr[index]
             threshold = thr[index]
+            old_diff = new_diff
 
     return true_pos_rate, threshold
 
