@@ -315,7 +315,7 @@ def find_roc_threshold_tpr(model, X, y, value_target):
             threshold = thr[index]
             old_diff = new_diff
 
-    return false_pos_rate, threshold
+    return threshold, false_pos_rate
 
 def find_roc_threshold_fpr(model, X, y, value_target):
 
@@ -329,7 +329,7 @@ def find_roc_threshold_fpr(model, X, y, value_target):
             threshold = thr[index]
             old_diff = new_diff
 
-    return true_pos_rate, threshold
+    return threshold, true_pos_rate
 
 def find_roc_threshold_f1(model, X, y):
     
