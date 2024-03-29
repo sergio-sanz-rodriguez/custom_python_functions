@@ -284,6 +284,12 @@ def plot_distributions(df):
 
 def plot_roc_curves(model_dic, X_test, y_test, figsize=(6,5)):
 
+    """
+    This function plots the ROC curves of the models defined in model_dic.
+    The model_dic format is {'model_label' : [model_object, color-line'], ...}. Example:
+    model_dic = {['model_1' : [model_1, 'r-'], 'model_2' : [model_2, 'b-']}
+    """
+    
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
 
@@ -294,16 +300,31 @@ def plot_roc_curves(model_dic, X_test, y_test, figsize=(6,5)):
         fpr, tpr, _ = roc_curve(y_test, model.predict_proba(X_test)[:,1])
         plt.plot(fpr, tpr, model_dic[key][1], label=key)
 
-    plt.plot([0,1],[0,1],'k:',label='random')
-    plt.plot([0,0,1,1],[0,1,1,1],'k--',label='perfect')
+    plt.plot([0,1],[0,1],'k:',label='Random')
+    plt.plot([0,0,1,1],[0,1,1,1],'k--',label='Perfect')
     ax.set_xlabel('False Positive Rate (1 - Specifity)')
     ax.set_ylabel('True Positive Rate (Recall)')
     ax.legend()
+    plt.grid()
     plt.show()
 
     return fig, ax
 
 def find_roc_threshold_tpr(model, X, y, value_target):
+    
+    """
+    This function calculates the threshold and false positive rate corresponding to a true positive rate of value_target (from 0 to 1).
+    
+    model                 # Trained model
+    X                     # Feature dataset
+    y                     # Target dataset
+    value_target          # True positive rate value
+    
+    Returns:
+    
+    threshold             # Threshold value
+    false_positive_rate   # False positive rate value
+    """
 
     fpr, tpr, thr = roc_curve(y, model.predict_proba(X)[:,1])
 
@@ -318,6 +339,20 @@ def find_roc_threshold_tpr(model, X, y, value_target):
     return threshold, false_pos_rate
 
 def find_roc_threshold_fpr(model, X, y, value_target):
+    
+    """
+    This function calculates the threshold and false positive rate corresponding to a false positive rate of value_target (from 0 to 1).
+    
+    model                 # Trained model
+    X                     # Feature dataset
+    y                     # Target dataset
+    value_target          # False positive rate value
+    
+    Returns:
+    
+    threshold             # Threshold value
+    false_positive_rate   # True positive rate value
+    """
 
     fpr, tpr, thr = roc_curve(y, model.predict_proba(X)[:,1])
 
@@ -333,31 +368,55 @@ def find_roc_threshold_fpr(model, X, y, value_target):
 
 def find_roc_threshold_f1(model, X, y):
     
+    """
+    This function calculates the threshold in the ROC curve that maximizes the f1 score.
+    model                 # Trained model
+    X                     # Feature dataset
+    y                     # Target dataset
+    
+    Returns:
+    
+    best_threshold        # Threshold value
+    best_f1_score         # F1 value
+    """
+    
     pred_ = model.predict_proba(X)[:,1]
 
     best_threshold = 0.5
-    best_score = 0.0
+    best_f1_score = 0.0
     for value in np.arange(1, 10, 0.5):
         pred_tmp = np.where(pred_ >= float(value/10), 1, 0)
         cost = f1_score(y, pred_tmp)
-        if cost > best_score:
-            best_score = cost
+        if cost > best_f1_score:
+            best_f1_score = cost
             best_threshold = float(value/10)
       
-    return best_threshold, best_score 
+    return best_threshold, best_f1_score
 
 def find_roc_threshold_accuracy(model, X, y):
+    
+    """
+    This function calculates the threshold in the ROC curve that maximizes the accuracy score.
+    model                 # Trained model
+    X                     # Feature dataset
+    y                     # Target dataset
+    
+    Returns:
+    
+    best_threshold        # Threshold value
+    best_acc_score        # Accuracy value
+    """
     
     pred_ = model.predict_proba(X)[:,1]
     #fpr, tpr, thr = roc_curve(y, model.predict_proba(X)[:,1])
 
     best_threshold = 0.5
-    best_score = 0.0
+    best_acc_score = 0.0
     for i in range(1 , 10, 0.5):
         pred_tmp = np.where(pred_ >= (i/10) , 1 ,0)
         cost = accuracy_score(pred_tmp, y)
-        if(cost > best_score):
-            best_score = cost
+        if(cost > best_acc_score):
+            best_acc_core = cost
             best_threshold = i/10
       
-    return best_threshold, best_score 
+    return best_threshold, best_acc_score 
