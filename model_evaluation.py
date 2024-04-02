@@ -273,14 +273,32 @@ def plot_distributions(df):
     #num_features.remove('outcome')
 
     for feature in num_features:
-        fig,ax=plt.subplots(1,2)
-        sns.boxplot(data=df, x=feature, ax=ax[0])
-        sns.histplot(data=df, x=feature, ax=ax[1], color='#ff4125', kde=True)
-        fig.set_size_inches(15, 5)
+        #fig,ax=plt.subplots(1,2)
+        #sns.boxplot(data=df, x=feature, ax=ax[0])
+        #sns.histplot(data=df, x=feature, ax=ax[1], color='#ff4125', kde=True)
+        #fig.set_size_inches(15, 5)
+        #plt.suptitle(feature)  # Adds a title to the entire figure
+        #plt.show()        
+        fig = plt.figure(figsize=(10,3))
+        ax = fig.add_subplot(121)    
+        sns.boxplot(data=df, x=feature, ax=ax)    
+        #plt.xlabel(units)  
+        ax = fig.add_subplot(122)
+        sns.histplot(data=df, x=feature, ax=ax, color='#D0312D', kde=True)
+        #plt.xlabel(units)
+        fig.set_size_inches(10, 3)
         plt.suptitle(feature)  # Adds a title to the entire figure
         plt.show()
     
-    return fig, ax
+    # Plot distributions
+    #fig,ax = plt.subplots(3,3,figsize=(12,8))
+    #count = 0
+    #for item in df_copy.columns.to_list():
+    #    sns.histplot(df_copy[item], kde=True, ax=ax[int(count/3)][count%3], color='#33658A').set(title=item, xlabel='')
+    #    count += 1
+    #    ax.flat[-1].set_visible(False)
+    #    fig.tight_layout(pad=3)
+    #    return fig, ax
 
 def plot_roc_curves(model_dic, X_test, y_test, figsize=(6,5)):
 
