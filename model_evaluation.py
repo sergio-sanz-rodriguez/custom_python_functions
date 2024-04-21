@@ -369,7 +369,7 @@ def find_roc_threshold_fpr(model, X, y, value_target):
     Returns:
     
     threshold             # Threshold value
-    false_positive_rate   # True positive rate value
+    true_positive_rate    # True positive rate value
     """
 
     fpr, tpr, thr = roc_curve(y, model.predict_proba(X)[:,1])
