@@ -5,6 +5,9 @@ import seaborn as sns
 import itertools
 import tensorflow as tf
 from tensorflow import keras
+from sklearn.metrics import auc
+from sklearn.model_selection import StratifiedKFold
+
 
 from sklearn.metrics import ( confusion_matrix,
                              accuracy_score,
@@ -486,3 +489,80 @@ class plot_learning(keras.callbacks.Callback):
 
         plt.tight_layout()
         plt.show()
+
+# 
+def partial_auc_score(y_actual, y_pred, tpr_threshold=0.80):
+    
+    """
+    This function calculates the partial AUC score
+    y_true: true labels
+    y_scores: predictions
+    tpr_threshold: true positive rate (recall) threshold above which the auc score will be computed
+    """
+  
+    max_fpr = 1 - tpr_threshold
+
+    # create numpy arrays
+    y_actual = np.asarray(y_actual)
+    y_pred = np.asarray(y_pred)
+
+    # ROC curve
+    fpr, tpr, _ = roc_curve(y_actual, y_pred)
+
+    # Find the index where fpr exceeds max_fpr
+    stop_index = np.searchsorted(fpr, max_fpr, side='right')
+
+    if stop_index < len(fpr):
+        # Interpolate to find the TPR at max_fpr
+        fpr_interp_points = [fpr[stop_index - 1], fpr[stop_index]]
+        tpr_interp_points = [tpr[stop_index - 1], tpr[stop_index]]
+        tpr = np.append(tpr[:stop_index], np.interp(max_fpr, fpr_interp_points, tpr_interp_points))
+        fpr = np.append(fpr[:stop_index], max_fpr)
+    else:
+        tpr = np.append(tpr, 1.0)
+        fpr = np.append(fpr, max_fpr)
+
+    # Calculate partial AUC
+    partial_auc_value = auc(fpr, tpr)
+
+    return partial_auc_value
+
+def cross_val_partial_auc_score(X, y, model, n_splits):
+
+    """
+    This fuction calculates the average partial AUC score across all validation folds.
+    X: input vector
+    y: label
+    model: machine learning model to train and cross-validate
+    n_splits: number of k folds
+    """
+
+     # Setup cross-validation
+    skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+    pauc_scores = []
+    cont = 1
+    for train_idx, val_idx in skf.split(X, y):
+
+        print(f'Processing fold {cont} of {n_splits}... ', end='', flush=True)
+        
+        # Create the folds
+        X_train_fold, X_val_fold = X.iloc[train_idx], X.iloc[val_idx]
+        y_train_fold, y_val_fold = y.iloc[train_idx], y.iloc[val_idx]
+                
+        # Train the model
+        model.fit(X_train_fold, y_train_fold)
+    
+        # Predict on the validation set
+        preds = model.predict_proba(X_val_fold)[:,1]
+   
+        # Calculate partical AUC and store it
+        pauc = partial_auc_score(y_val_fold, preds)
+        pauc_scores.append(pauc)
+
+        print(f'pAUC: {pauc}', flush=True)
+        
+        cont += 1
+    
+    # Return the average
+    return np.mean(pauc_scores)
