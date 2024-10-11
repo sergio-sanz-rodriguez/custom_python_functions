@@ -129,6 +129,7 @@ def train_crossval_predict_score(model,
                                  verbose=0,
                                  n_jobs=-1,
                                  cross_val='full',
+                                 n_iter=100,
                                  random_state='None',
                                  training=True,
                                  test=True,
@@ -137,29 +138,31 @@ def train_crossval_predict_score(model,
                                  precision=True,
                                  fbeta=[True, 1.0],
                                  roc_auc=True,
+                                 pauc=True,
                                  matrix=True,
                                  figsize=(3,2),
                                  cmap='YlGn'):
                                  
     '''
     Given an instantiated model, this function trains, cross-validate, predicts, and prints some performance scores training and/or testing data.
-    The cross-validation strategy is selected with the input parametes "cross_val".
+    The cross-validation strategy is selected with the input parameters "cross_val".
     The supported metrics are: accuracy, recall, precision, fbeta_score (and f1_score if beta = 1.0), roc_auc.
     If the input parameter "matrix" is set to True, the function plot the confusion matrix with a color map given in "cmap".
 
     model                 #Instantiated model
-    hyperparams           #Dictionary incluing hyperparameters
+    hyperparams           #Dictionary including hyperparameters
     X_train               #Training data with features
-    y_train               #Traning data with labels or targets
+    y_train               #Training data with labels or targets
     X_test                #Testing data with features
-    y_test                #Testind data with labels or targets
-    cv=5                  #Number of cross-validdation folds
+    y_test                #Testing data with labels or targets
+    cv=5                  #Number of cross-validation folds
     scoring='accuracy'    #Scoring method
     verbose=0             #Verbose
     n_jobs=-1             #Number of jobs in parallel
     cross_val='full'      #'Full'/'full': Apply GridSearchCV. 'Random'/'random': Apply RandomSearchCV
+    n_iter=100,           #Number of iterations for RandomSearchCV (unused for full search)
     random_state          #Random state parameter for RandomSearchCV: 'None' or an integer
-    training=True         #True: print scores on the traning set
+    training=True         #True: print scores on the training set
     test=True             #True: print scores on the testing set
     accuracy=True         #True: print accuracy_score()
     recall=True           #True: print recall_score()
@@ -170,20 +173,21 @@ def train_crossval_predict_score(model,
     figsize=(3,2)         #Figure size for the confusion matrix
     cmap='YlGn'):         #Color map for the confusion matrix
 
-    Posible color maps: 'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+    Possible color maps: 'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
                         'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
                         'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn'
     
     Returns:
     - best_model: object of the best model after cross-validation
-    - fig, ax: the figure objects of the cunfusion matrix (if enabled)
+    - best_params: hyperparameters of the best model
+    - fig, ax: the figure objects of the confusion matrix (if enabled)
 '''
 
     # Cross-validation
     if cross_val == 'Full' or cross_val == 'full':
         grid_model = GridSearchCV(model, param_grid=hyperparams, cv=cv, scoring=scoring, verbose=verbose, n_jobs=n_jobs)
     elif cross_val == 'Random' or cross_val == 'random':        
-        grid_model = RandomizedSearchCV(model, param_distributions=hyperparams, cv=cv, scoring=scoring, random_state=random_state, verbose=verbose, n_jobs=n_jobs)
+        grid_model = RandomizedSearchCV(model, param_distributions=hyperparams, n_iter=n_iter, cv=cv, scoring=scoring, random_state=random_state, verbose=verbose, n_jobs=n_jobs)
         
     # Fit
     grid_model.fit(X_train, y_train)
@@ -193,23 +197,24 @@ def train_crossval_predict_score(model,
     print("--------"*5)
     
     # Predict and print results
-    fig, ax = predict_and_print_scores(best_model,
-                                       X_train,
-                                       y_train,
-                                       X_test,
-                                       y_test,
-                                       training=training,
-                                       test=test,
-                                       accuracy=accuracy,
-                                       recall=recall,
-                                       precision=precision,
-                                       fbeta=fbeta,
-                                       roc_auc=roc_auc,
-                                       matrix=matrix,
-                                       figsize=figsize,
-                                       cmap=cmap)
+    predict_and_print_scores(best_model,
+                             X_train,
+                             y_train,
+                             X_test,
+                             y_test,
+                             training=training,
+                             test=test,
+                             accuracy=accuracy,
+                             recall=recall,
+                             precision=precision,
+                             fbeta=fbeta,
+                             roc_auc=roc_auc,
+                             pauc=pauc,
+                             matrix=matrix,
+                             figsize=figsize,
+                             cmap=cmap)
     
-    return best_model, best_params, fig, ax
+    return best_model, best_params
 
 
 def plot_confusion_matrix(cm, classes,
