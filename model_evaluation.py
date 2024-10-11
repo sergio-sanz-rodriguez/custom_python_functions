@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import itertools
+import tensorflow as tf
+from tensorflow import keras
 
 from sklearn.metrics import ( confusion_matrix,
                              accuracy_score,
@@ -359,7 +361,7 @@ def find_roc_threshold_tpr(model, X, y, value_target):
 def find_roc_threshold_fpr(model, X, y, value_target):
     
     """
-    This function calculates the threshold and false positive rate corresponding to a false positive rate of value_target (from 0 to 1).
+    This function calculates the threshold and true positive rate corresponding to a false positive rate of value_target (from 0 to 1).
     
     model                 # Trained model
     X                     # Feature dataset
