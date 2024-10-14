@@ -125,7 +125,7 @@ def eval_model(model: torch.nn.Module,
                data_loader: torch.utils.data.DataLoader, 
                loss_fn: torch.nn.Module, 
                accuracy_fn, 
-               device: torch.device = device):
+               device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"):
     """Evaluates a given model on a given dataset.
 
     Args:
