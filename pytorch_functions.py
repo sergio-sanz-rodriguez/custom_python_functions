@@ -203,3 +203,28 @@ def eval_model(model: torch.nn.Module,
     return {"model_name": model.__class__.__name__, # only works when model was created with a class
             "model_loss": loss.item(),
             "model_acc": acc}
+
+
+def make_predictions(model: torch.nn.Module,
+                     dataloader: torch.utils.data.DataLoader,
+                     device="cpu"):
+    y_preds = []
+    model.eval()
+    model.to(device)
+    with torch.inference_mode():
+        for X, y in tqdm(dataloader, desc="Making predictions"):
+
+            # Send data and targets to target device
+            X, y = X.to(device), y.to(device)
+            
+            # Do the forward pass
+            y_logit = model_2(X)
+
+            # Turn predictions from logits -> prediction probabilities -> predictions labels
+            y_pred = torch.softmax(y_logit, dim=1).argmax(dim=1)
+            
+            # Put predictions on CPU for evaluation
+            y_preds.append(y_pred.cpu())
+
+    # Concatenate list of predictions into a tensor
+    return torch.cat(y_preds)
