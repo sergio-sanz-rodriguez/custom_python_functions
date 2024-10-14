@@ -94,13 +94,13 @@ def test_step(data_loader: torch.utils.data.DataLoader,
 
 
 def train_nn(model: torch.nn.Module,
-                     train_data_loader: torch.utils.data.DataLoader,
-                     test_data_loader: torch.utils.data.DataLoader,
-                     loss_fn: torch.nn.Module,
-                     optimizer: torch.optim.Optimizer,
-                     accuracy_fn,
-                     device: torch.device = "cuda" if torch.cuda.is_available() else "cpu",
-                     epochs: int = 10):
+             train_data_loader: torch.utils.data.DataLoader,
+             test_data_loader: torch.utils.data.DataLoader,
+             loss_fn: torch.nn.Module,
+             optimizer: torch.optim.Optimizer,
+             accuracy_fn,
+             device: torch.device = "cuda" if torch.cuda.is_available() else "cpu",
+             epochs: int = 10):
     
     """train_step and test_step in one single function.
     """
