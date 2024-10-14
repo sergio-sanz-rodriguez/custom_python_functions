@@ -93,7 +93,7 @@ def test_step(data_loader: torch.utils.data.DataLoader,
         print(f"Test loss: {test_loss:.5f} | Test accuracy: {test_acc:.2f}%\n")
 
 
-def train_test_steps(model: torch.nn.Module,
+def train_nn(model: torch.nn.Module,
                      train_data_loader: torch.utils.data.DataLoader,
                      test_data_loader: torch.utils.data.DataLoader,
                      loss_fn: torch.nn.Module,
