@@ -7,7 +7,7 @@ def train_step(model: torch.nn.Module,
                loss_fn: torch.nn.Module,
                optimizer: torch.optim.Optimizer,
                accuracy_fn,
-               device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"):
+               device="cpu"):
     
     """Performs the training step of a neural network.
 
@@ -55,7 +55,7 @@ def test_step(model: torch.nn.Module,
               data_loader: torch.utils.data.DataLoader,              
               loss_fn: torch.nn.Module,
               accuracy_fn,
-              device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"):
+              device="cpu"):
     
     """Performs the test step of a neural network.
 
@@ -87,7 +87,7 @@ def test_step(model: torch.nn.Module,
             test_acc += accuracy_fn(y_true=y,
                 y_pred=test_pred.argmax(dim=1) # Go from logits -> pred labels
             )
-        
+         
         # Adjust metrics and print out
         test_loss /= len(data_loader)
         test_acc /= len(data_loader)
@@ -100,7 +100,7 @@ def train_nn(model: torch.nn.Module,
              loss_fn: torch.nn.Module,
              optimizer: torch.optim.Optimizer,
              accuracy_fn,
-             device: torch.device = "cuda" if torch.cuda.is_available() else "cpu",
+             device="cpu",
              epochs: int = 10):
     
     """train_step and test_step in one single function.
