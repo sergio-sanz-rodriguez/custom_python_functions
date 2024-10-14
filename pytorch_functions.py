@@ -102,7 +102,7 @@ def train_nn(model: torch.nn.Module,
              optimizer: torch.optim.Optimizer,
              accuracy_fn,
              device="cpu",
-             epochs: int = 10):
+             epochs=10):
     
     """train_step and test_step in one single function.
     """
