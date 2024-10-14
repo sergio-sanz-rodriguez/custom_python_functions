@@ -1,5 +1,5 @@
 import torch
-import tqdm
+from tqdm.auto import tqdm # prints the training progress
 import numpy as np
 
 def train_step(model: torch.nn.Module,
