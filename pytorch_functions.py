@@ -1,5 +1,6 @@
 import torch
 import tqdm
+import numpy as np
 
 def train_step(model: torch.nn.Module,
                data_loader: torch.utils.data.DataLoader,
