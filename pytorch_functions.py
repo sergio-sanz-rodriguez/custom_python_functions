@@ -24,6 +24,7 @@ def train_step(model: torch.nn.Module,
 
     train_loss, train_acc = 0, 0
     model.to(device)
+    model.train() # put model in train mode
     for batch, (X, y) in enumerate(data_loader):
         # Send data to GPU
         X, y = X.to(device), y.to(device)
