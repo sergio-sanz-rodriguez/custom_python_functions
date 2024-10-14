@@ -112,7 +112,7 @@ def train_nn(model: torch.nn.Module,
     model.to(device)
     model.train() # put model in train mode
 
-    for epoch in (range(epochs)):
+    for epoch in tqdm(range(epochs)):
         
         ### Training
 
