@@ -107,30 +107,17 @@ def train_nn(model: torch.nn.Module,
     """train_step and test_step in one single function.
     """
 
-    def train_step(model: torch.nn.Module,
-               data_loader: torch.utils.data.DataLoader,
-               loss_fn: torch.nn.Module,
-               optimizer: torch.optim.Optimizer,
-               accuracy_fn,
-               device="cpu"):
-    
-        """Performs the training step of a neural network.
+   
+    train_loss, train_acc = 0, 0
+    model.to(device)
+    model.train() # put model in train mode
 
-        Args:
-            model (torch.nn.Module): A PyTorch model capable of making predictions on data_loader.
-            data_loader (torch.utils.data.DataLoader): The target dataset to predict on.
-            loss_fn (torch.nn.Module): The loss function of model.
-            accuracy_fn: An accuracy function to compare the models predictions to the truth labels.
-            device (str, optional): Target device to compute on. Defaults to device.
+    for epoch in tqdm(range(epochs)):
+        
+        ### Training
 
-        Returns:
-            Sumary of train loss and train accuracy.
-        """
-
-        train_loss, train_acc = 0, 0
-        model.to(device)
-        model.train() # put model in train mode
-        for batch, (X, y) in enumerate(data_loader):
+        print(f"Epoch: {epoch}\n---------")
+        for batch, (X, y) in enumerate(train_data_loader):
             # Send data to GPU
             X, y = X.to(device), y.to(device)
 
@@ -153,35 +140,18 @@ def train_nn(model: torch.nn.Module,
             optimizer.step()
 
         # Calculate loss and accuracy per epoch and print out what's happening
-        train_loss /= len(data_loader)
-        train_acc /= len(data_loader)
+        train_loss /= len(train_data_loader)
+        train_acc /= len(train_data_loader)
         print(f"Train loss: {train_loss:.5f} | Train accuracy: {train_acc:.2f}%")
 
-    def test_step(model: torch.nn.Module,
-              data_loader: torch.utils.data.DataLoader,              
-              loss_fn: torch.nn.Module,
-              accuracy_fn,
-              device="cpu"):
-    
-        """Performs the test step of a neural network.
-
-        Args:
-            model (torch.nn.Module): A PyTorch model capable of making predictions on data_loader.
-            data_loader (torch.utils.data.DataLoader): The target dataset to predict on.
-            loss_fn (torch.nn.Module): The loss function of model.
-            accuracy_fn: An accuracy function to compare the models predictions to the truth labels.
-            device (str, optional): Target device to compute on. Defaults to device.
-
-        Returns:
-            Sumary of train loss and train accuracy.
-        """
+        ### Testing
 
         test_loss, test_acc = 0, 0
         model.to(device)
         model.eval() # put model in eval mode
         # Turn on inference context manager
         with torch.inference_mode(): 
-            for X, y in data_loader:
+            for X, y in test_data_loader:
                 # Send data to GPU
                 X, y = X.to(device), y.to(device)
                 
@@ -195,26 +165,10 @@ def train_nn(model: torch.nn.Module,
                 )
             
             # Adjust metrics and print out
-            test_loss /= len(data_loader)
-            test_acc /= len(data_loader)
+            test_loss /= len(test_data_loader)
+            test_acc /= len(test_data_loader)
             print(f"Test loss: {test_loss:.5f} | Test accuracy: {test_acc:.2f}%\n")
 
-    for epoch in tqdm(range(epochs)):
-        print(f"Epoch: {epoch}\n---------")
-        train_step(model=model,
-                   data_loader=train_data_loader,                     
-                   loss_fn=loss_fn,
-                   optimizer=optimizer,
-                   accuracy_fn=accuracy_fn,
-                   device=device
-                   )
-        test_step(model=model,
-                  data_loader=test_data_loader,
-                  loss_fn=loss_fn,
-                  accuracy_fn=accuracy_fn,
-                  device=device
-                  )
-    
 def eval_model(model: torch.nn.Module, 
                data_loader: torch.utils.data.DataLoader, 
                loss_fn: torch.nn.Module, 
