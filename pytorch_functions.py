@@ -106,20 +106,20 @@ def train_nn(model: torch.nn.Module,
     """
 
     for epoch in tqdm(range(epochs)):
-    print(f"Epoch: {epoch}\n---------")
-    train_step(data_loader=train_data_loader, 
-        model=model, 
-        loss_fn=loss_fn,
-        optimizer=optimizer,
-        accuracy_fn=accuracy_fn,
-        device=device
-    )
-    test_step(data_loader=test_data_loader,
-        model=model,
-        loss_fn=loss_fn,
-        accuracy_fn=accuracy_fn,
-        device=device
-    )
+        print(f"Epoch: {epoch}\n---------")
+        train_step(data_loader=train_data_loader, 
+            model=model, 
+            loss_fn=loss_fn,
+            optimizer=optimizer,
+            accuracy_fn=accuracy_fn,
+            device=device
+        )
+        test_step(data_loader=test_data_loader,
+            model=model,
+            loss_fn=loss_fn,
+            accuracy_fn=accuracy_fn,
+            device=device
+        )
     
 def eval_model(model: torch.nn.Module, 
                data_loader: torch.utils.data.DataLoader, 
