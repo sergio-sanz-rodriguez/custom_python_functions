@@ -50,8 +50,8 @@ def train_step(model: torch.nn.Module,
     train_acc /= len(data_loader)
     print(f"Train loss: {train_loss:.5f} | Train accuracy: {train_acc:.2f}%")
 
-def test_step(data_loader: torch.utils.data.DataLoader,
-              model: torch.nn.Module,
+def test_step(model: torch.nn.Module,
+              data_loader: torch.utils.data.DataLoader,              
               loss_fn: torch.nn.Module,
               accuracy_fn,
               device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"):
@@ -107,19 +107,19 @@ def train_nn(model: torch.nn.Module,
 
     for epoch in tqdm(range(epochs)):
         print(f"Epoch: {epoch}\n---------")
-        train_step(data_loader=train_data_loader, 
-            model=model, 
-            loss_fn=loss_fn,
-            optimizer=optimizer,
-            accuracy_fn=accuracy_fn,
-            device=device
-        )
-        test_step(data_loader=test_data_loader,
-            model=model,
-            loss_fn=loss_fn,
-            accuracy_fn=accuracy_fn,
-            device=device
-        )
+        train_step(model=model,
+                   data_loader=train_data_loader,                     
+                   loss_fn=loss_fn,
+                   optimizer=optimizer,
+                   accuracy_fn=accuracy_fn,
+                   device=device
+                   )
+        test_step(model=model,
+                  data_loader=test_data_loader,
+                  loss_fn=loss_fn,
+                  accuracy_fn=accuracy_fn,
+                  device=device
+                  )
     
 def eval_model(model: torch.nn.Module, 
                data_loader: torch.utils.data.DataLoader, 
