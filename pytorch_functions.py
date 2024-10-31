@@ -1,6 +1,9 @@
 import torch
 from tqdm import tqdm  # Standard usage for scripts
 import numpy as np
+from typing import Tuple, Dict, List
+import random
+import matplotlib.pyplot as plt
 
 def train_step(model: torch.nn.Module,
                data_loader: torch.utils.data.DataLoader,
@@ -218,7 +221,7 @@ def make_predictions(model: torch.nn.Module,
             X, y = X.to(device), y.to(device)
             
             # Do the forward pass
-            y_logit = model_2(X)
+            y_logit = model(X)
 
             # Turn predictions from logits -> prediction probabilities -> predictions labels
             y_pred = torch.softmax(y_logit, dim=1).argmax(dim=1)
@@ -229,7 +232,7 @@ def make_predictions(model: torch.nn.Module,
     # Concatenate list of predictions into a tensor
     return torch.cat(y_preds)
 
-# 1. Take in a Dataset as well as a list of class names
+
 def display_random_images(dataset: torch.utils.data.dataset.Dataset,
                           classes: List[str] = None,
                           n: int = 10,
