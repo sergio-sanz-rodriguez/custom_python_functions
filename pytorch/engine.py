@@ -252,7 +252,7 @@ def eval_model(model: torch.nn.Module,
 
 def make_predictions(model: torch.nn.Module,
                      dataloader: torch.utils.data.DataLoader,
-                     device="cpu"):
+                     device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"):
     y_preds = []
     model.eval()
     model.to(device)
