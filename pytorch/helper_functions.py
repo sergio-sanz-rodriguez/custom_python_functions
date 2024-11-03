@@ -13,6 +13,7 @@ from pathlib import Path
 import requests
 from typing import List, Dict, Tuple
 import random
+from PIL import Image
 
 # Walk through an image classification directory and find out how many files (images)
 # are in each subdirectory.
@@ -233,6 +234,70 @@ def pred_and_plot_image(
         title = f"Pred: {target_image_pred_label} | Prob: {target_image_pred_probs.max().cpu():.3f}"
     plt.title(title)
     plt.axis(False)
+
+
+# 1. Take in a trained model, class names, image path, image size, a transform and target device
+def pred_and_plot_image_imagenet(model: torch.nn.Module,
+                                 image_path: str, 
+                                 class_names: List[str],
+                                 image_size: Tuple[int, int] = (224, 224),
+                                 transform: torchvision.transforms = None,
+                                 device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"):
+    """Predicts on a target image with a target model.
+
+    Args:
+        model (torch.nn.Module): A trained (or untrained) PyTorch model to predict on an image.
+        image_path (str): A file path to the image being predicted on. 
+        class_names (List[str]): A list of class names such as ["pizza", "steak", "sushi"].
+        image_size (Tuple[int, int], optional): Size to transform target image to. Defaults to (224, 224).
+        transform (torchvision.transforms, optional): Transform to perform on image. Defaults to None which uses ImageNet normalization.
+        device (torch.device, optional): Target device to perform prediction on. Defaults to device.
+    """
+
+    # 0. Make sure the model is on the target device
+    model.to(device) 
+    
+    # 2. Open image
+    img = Image.open(image_path)
+
+    # 3. Create transformation for image (if one doesn't exist)
+    if transform is not None:
+        image_transform = transform
+    else:
+        image_transform = v2.Compose([
+            v2.Resize((224, 224)),                                  # 1. Reshape all images to 224x224 (though some models may require different sizes)
+            v2.ToImage(), v2.ToDtype(torch.float32, scale=True),    # 2. convert to tensor and normalize
+            v2.Normalize(mean=[0.485, 0.456, 0.406],                # 3. A mean of [0.485, 0.456, 0.406] (across each colour channel)
+                         std=[0.229, 0.224, 0.225])                 # 4. A standard deviation of [0.229, 0.224, 0.225] (across each colour channel),
+                         ])
+
+    ### Predict on image ### 
+
+    # 4. Make sure the model is on the target device
+    model.to(device)
+
+    # 5. Turn on model evaluation mode and inference mode
+    model.eval()
+    with torch.inference_mode():
+      # 6. Transform and add an extra dimension to image (model requires samples in [batch_size, color_channels, height, width])
+      transformed_image = image_transform(img).unsqueeze(dim=0)
+
+      # 7. Make a prediction on image with an extra dimension and send it to the target device
+      target_image_pred = model(transformed_image.to(device))
+
+    # 8. Convert logits -> prediction probabilities (using torch.softmax() for multi-class classification)
+    target_image_pred_probs = torch.softmax(target_image_pred, dim=1)
+
+    # 9. Convert prediction probabilities -> prediction labels
+    target_image_pred_label = torch.argmax(target_image_pred_probs, dim=1)
+
+    # 10. Plot image with predicted label and probability 
+    plt.figure()
+    plt.imshow(img)
+    plt.title(f"Pred: {class_names[target_image_pred_label]} | Prob: {target_image_pred_probs.max():.3f}")
+    plt.axis(False)
+
+
 
 def set_seeds(seed: int=42):
     """Sets random sets for torch operations.
