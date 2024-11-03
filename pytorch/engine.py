@@ -253,6 +253,18 @@ def eval_model(model: torch.nn.Module,
 def make_predictions(model: torch.nn.Module,
                      dataloader: torch.utils.data.DataLoader,
                      device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"):
+    """
+    Predicts classes for a given dataset using a trained model.
+
+    Args:
+        model (torch.nn.Module): A trained PyTorch model.
+        dataloader (torch.utils.data.DataLoader): The dataset to predict on.
+        device (str, optional): Target device to compute on. Defaults to device.
+
+    Returns:
+        (list): All of the predicted class labels.
+    """
+
     y_preds = []
     model.eval()
     model.to(device)
