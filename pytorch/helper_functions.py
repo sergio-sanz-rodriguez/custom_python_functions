@@ -14,6 +14,7 @@ import requests
 from typing import List, Dict, Tuple
 import random
 from PIL import Image
+from torchvision.transforms import v2
 
 # Walk through an image classification directory and find out how many files (images)
 # are in each subdirectory.
