@@ -12,7 +12,8 @@ NUM_WORKERS = os.cpu_count()
 def create_dataloaders(
     train_dir: str, 
     test_dir: str, 
-    transform: transforms.Compose, 
+    train_transform: transforms.Compose, 
+    test_transform: transforms.Compose,
     batch_size: int, 
     num_workers: int=NUM_WORKERS
 ):
@@ -24,7 +25,8 @@ def create_dataloaders(
   Args:
     train_dir: Path to training directory.
     test_dir: Path to testing directory.
-    transform: torchvision transforms to perform on training and testing data.
+    train_transform: torchvision transforms to perform on training data.
+    test_transform: torchvision transforms to perform on test data.
     batch_size: Number of samples per batch in each of the DataLoaders.
     num_workers: An integer for number of workers per DataLoader.
 
@@ -40,8 +42,8 @@ def create_dataloaders(
                              num_workers=4)
   """
   # Use ImageFolder to create dataset(s)
-  train_data = datasets.ImageFolder(train_dir, transform=transform)
-  test_data = datasets.ImageFolder(test_dir, transform=transform)
+  train_data = datasets.ImageFolder(train_dir, transform=train_transform)
+  test_data = datasets.ImageFolder(test_dir, transform=test_transform)
 
   # Get class names
   class_names = train_data.classes
@@ -63,3 +65,35 @@ def create_dataloaders(
   )
 
   return train_dataloader, test_dataloader, class_names
+
+def create_dataloaders(
+    train_dir, 
+    test_dir, 
+    train_transform, # add parameter for train transform (transforms on train dataset)
+    test_transform,  # add parameter for test transform (transforms on test dataset)
+    batch_size=32, num_workers=NUM_WORKERS
+):
+    # Use ImageFolder to create dataset(s)
+    train_data = datasets.ImageFolder(train_dir, transform=train_transform)
+    test_data = datasets.ImageFolder(test_dir, transform=test_transform)
+
+    # Get class names
+    class_names = train_data.classes
+
+    # Turn images into data loaders
+    train_dataloader = DataLoader(
+        train_data,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    test_dataloader = DataLoader(
+        test_data,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+
+    return train_dataloader, test_dataloader, class_names
