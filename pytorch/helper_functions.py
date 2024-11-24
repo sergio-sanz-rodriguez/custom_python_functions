@@ -606,6 +606,8 @@ def get_most_wrong_examples(model: torch.nn.Module,
 
     if plot_images or num_samples == 0:
                   
+        class_names = test_dataloader.dataset.classes
+
         n_rows = int(num_samples/n_cols) + 1
 
         root = Tk()
