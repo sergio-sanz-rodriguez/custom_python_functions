@@ -5,6 +5,7 @@ If a function gets defined once and could be used over and over, it'll go in her
 """
 import torch
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 from torch import nn
 import os
@@ -15,6 +16,8 @@ from typing import List, Dict, Tuple
 import random
 from PIL import Image
 from torchvision.transforms import v2
+from tqdm.auto import tqdm
+from tkinter import Tk
 
 # Walk through an image classification directory and find out how many files (images)
 # are in each subdirectory.
@@ -534,3 +537,96 @@ def download_data(source: str,
             os.remove(data_path / target_file)
     
     return image_path
+
+def get_most_wrong_examples(model: torch.nn.Module,
+                            test_dataloader: torch.utils.data.DataLoader,
+                            num_samples:int=5,
+                            plot_images:bool=True,
+                            n_cols:int=5,
+                            title_font_size:int=20,
+                            device: torch.device = "cuda" if torch.cuda.is_available() else "cpu"
+                            ):
+    '''
+    Returns the most wrong examples from a trained model
+    Args:
+        model: a trained model
+        test_dataloader: a test dataloader
+        num_samples: number of samples to return
+        plot_images: whether to plot the images
+        device: device to use for the model
+    '''
+
+    # Make predictions on test dataset
+    model.eval()    
+    y_preds = []
+    y_probs = []
+
+    model.eval()
+    model.to(device)
+
+    with torch.inference_mode():
+        for X, y in tqdm(test_dataloader, desc="Making predictions"):
+
+            # Send data and targets to target device
+            X, y = X.to(device), y.to(device)
+            
+            # Do the forward pass
+            y_logit = model(X)
+
+            # Turn predictions from logits -> prediction probabilities -> predictions labels
+            y_pred = torch.softmax(y_logit, dim=1).argmax(dim=1)
+            y_prob = torch.softmax(y_logit, dim=1).max(dim=1)[0]
+            
+            # Put predictions on CPU for evaluation
+            y_preds.append(y_pred.cpu())
+            y_probs.append(y_prob.cpu())
+
+    # Concatenate list of predictions into a tensor
+    test_pred_tensor = torch.cat(y_preds)
+    test_prob_tensor = torch.cat(y_probs)
+
+    # Convert tensors to lists
+    y_preds = test_pred_tensor.tolist()
+    y_probs = test_prob_tensor.tolist()
+
+    sample = [i[0] for i in test_dataloader.dataset.imgs]
+    label = [i[1] for i in test_dataloader.dataset.imgs]
+    prediction = y_preds
+    prob = y_probs
+
+    len(sample), len(label), len(prediction), len(prob)
+    df = pd.DataFrame({'sample': sample, 'label': label, 'prediction': prediction, 'prob': prob})
+    df['match'] = df['label'] == df['prediction']
+    df_wrong = df[df['match'] == False]
+    df_wrong_sorted = df_wrong.sort_values(by='prob', ascending=False)
+    df_top_wrong = df_wrong_sorted.head(num_samples)
+    df_top_wrong.reset_index(inplace=True)
+
+    num_samples = df_top_wrong.shape[0]
+
+    if plot_images or num_samples == 0:
+                  
+        n_rows = int(num_samples/n_cols) + 1
+
+        root = Tk()
+        screen_width_px = root.winfo_screenwidth()
+        dpi = plt.rcParams['figure.dpi']
+        screen_width_in = screen_width_px / dpi
+
+        _, axes = plt.subplots(nrows=n_rows, ncols=n_cols, figsize=(screen_width_in, screen_width_in*n_rows // n_cols))
+        for i in range(n_rows):
+            for j in range(n_cols):
+                idx = i*n_cols+j 
+                if idx >= num_samples:
+                    axes[i, j].set_visible(False)
+                else:
+                    img = plt.imread(df_top_wrong.loc[idx, 'sample'])
+                    axes[i, j].imshow(img)
+                    predicted = df_top_wrong.loc[idx, 'prediction']
+                    predicted_class = class_names[predicted]
+                    actual = df_top_wrong.loc[idx, 'label']
+                    actual_class = class_names[actual]
+                    axes[i, j].set_title(f"Pred: {predicted_class} (Act: {actual_class})", fontsize=title_font_size)
+                    axes[i, j].axis('off')
+
+    return df_top_wrong
