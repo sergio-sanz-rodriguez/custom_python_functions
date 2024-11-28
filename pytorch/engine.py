@@ -248,7 +248,6 @@ def eval_model(model: torch.nn.Module,
         model (torch.nn.Module): A PyTorch model capable of making predictions on data_loader.
         data_loader (torch.utils.data.DataLoader): The target dataset to predict on.
         loss_fn (torch.nn.Module): The loss function of model.
-        accuracy_fn: An accuracy function to compare the models predictions to the truth labels.
         device (str, optional): Target device to compute on. Defaults to device.
 
     Returns:
