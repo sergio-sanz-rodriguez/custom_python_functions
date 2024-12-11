@@ -18,6 +18,8 @@ from PIL import Image
 from torchvision.transforms import v2
 from tqdm.auto import tqdm
 from tkinter import Tk
+from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
 
 # Walk through an image classification directory and find out how many files (images)
 # are in each subdirectory.
@@ -73,6 +75,64 @@ def plot_decision_boundary(model: torch.nn.Module, X: torch.Tensor, y: torch.Ten
     plt.xlim(xx.min(), xx.max())
     plt.ylim(yy.min(), yy.max())
 
+NUM_WORKERS = os.cpu_count()
+
+def create_dataloaders(
+    train_dir: str, 
+    test_dir: str, 
+    train_transform: transforms.Compose, 
+    test_transform: transforms.Compose,
+    batch_size: int, 
+    num_workers: int=NUM_WORKERS
+):
+  """Creates training and testing DataLoaders.
+
+  Takes in a training directory and testing directory path and turns
+  them into PyTorch Datasets and then into PyTorch DataLoaders.
+
+  Args:
+    train_dir: Path to training directory.
+    test_dir: Path to testing directory.
+    train_transform: torchvision transforms to perform on training data.
+    test_transform: torchvision transforms to perform on test data.
+    batch_size: Number of samples per batch in each of the DataLoaders.
+    num_workers: An integer for number of workers per DataLoader.
+
+  Returns:
+    A tuple of (train_dataloader, test_dataloader, class_names).
+    Where class_names is a list of the target classes.
+    Example usage:
+      train_dataloader, test_dataloader, class_names = \
+        = create_dataloaders(train_dir=path/to/train_dir,
+                             test_dir=path/to/test_dir,
+                             transform=some_transform,
+                             batch_size=32,
+                             num_workers=4)
+  """
+  # Use ImageFolder to create dataset(s)
+  train_data = datasets.ImageFolder(train_dir, transform=train_transform)
+  test_data = datasets.ImageFolder(test_dir, transform=test_transform)
+
+  # Get class names
+  class_names = train_data.classes
+
+  # Turn images into data loaders
+  train_dataloader = DataLoader(
+      train_data,
+      batch_size=batch_size,
+      shuffle=True,
+      num_workers=num_workers,
+      pin_memory=True, #enables fast data transfre to CUDA-enable GPU
+  )
+  test_dataloader = DataLoader(
+      test_data,
+      batch_size=batch_size,
+      shuffle=False,
+      num_workers=num_workers,
+      pin_memory=True, #enables fast data transfre to CUDA-enable GPU
+  )
+
+  return train_dataloader, test_dataloader, class_names
 
 # Plot linear data or training and test and predictions (optional)
 def plot_predictions(
@@ -269,7 +329,7 @@ def pred_and_plot_image_imagenet(model: torch.nn.Module,
         image_transform = transform
     else:
         image_transform = v2.Compose([
-            v2.Resize((224, 224)),                                  # 1. Reshape all images to 224x224 (though some models may require different sizes)
+            v2.Resize(image_size),                                  # 1. Reshape all images to image_size
             v2.ToImage(), v2.ToDtype(torch.float32, scale=True),    # 2. convert to tensor and normalize
             v2.Normalize(mean=[0.485, 0.456, 0.406],                # 3. A mean of [0.485, 0.456, 0.406] (across each colour channel)
                          std=[0.229, 0.224, 0.225])                 # 4. A standard deviation of [0.229, 0.224, 0.225] (across each colour channel),
@@ -557,7 +617,6 @@ def get_most_wrong_examples(model: torch.nn.Module,
     '''
 
     # Make predictions on test dataset
-    model.eval()    
     y_preds = []
     y_probs = []
 
@@ -565,7 +624,7 @@ def get_most_wrong_examples(model: torch.nn.Module,
     model.to(device)
 
     with torch.inference_mode():
-        for X, y in tqdm(test_dataloader, desc="Making predictions"):
+        for batch, (X, y) in tqdm(enumerate(test_dataloader), total=len(test_dataloader), colour='#FF9E2C', desc="Making predictions"):
 
             # Send data and targets to target device
             X, y = X.to(device), y.to(device)
@@ -594,7 +653,7 @@ def get_most_wrong_examples(model: torch.nn.Module,
     prediction = y_preds
     prob = y_probs
 
-    len(sample), len(label), len(prediction), len(prob)
+    #len(sample), len(label), len(prediction), len(prob)
     df = pd.DataFrame({'sample': sample, 'label': label, 'prediction': prediction, 'prob': prob})
     df['match'] = df['label'] == df['prediction']
     df_wrong = df[df['match'] == False]
@@ -632,3 +691,25 @@ def get_most_wrong_examples(model: torch.nn.Module,
                     axes[i, j].axis('off')
 
     return df_top_wrong
+
+def zip_folder(folder_path, output_zip, exclusions):
+
+    """Zips the contents of a folder, excluding specified files or folders.
+    folder_to_zip = "demos/foodvision_mini"  # Change this to your folder path
+    output_zip_file = "demos/foodvision_mini.zip"
+    exclusions = ["__pycache__", "ipynb_checkpoints", ".pyc", ".ipynb"]
+    """
+
+    with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(folder_path):
+            # Skip excluded directories
+            dirs[:] = [d for d in dirs if all(excl not in os.path.join(root, d) for excl in exclusions)]
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Skip excluded files
+                if any(excl in file_path for excl in exclusions):
+                    continue
+                arcname = os.path.relpath(file_path, start=folder_path)
+                zipf.write(file_path, arcname=arcname)
+
+
