@@ -659,6 +659,7 @@ def display_random_images(dataset: torch.utils.data.dataset.Dataset, # or torchv
         seed (int, optional): The seed to set before drawing random images. Defaults to None.
     
     Usage:
+    train_data = datasets.ImageFolder(train_dir, transform=manual_transforms)
     display_random_images(train_data, 
                       n=16, 
                       classes=class_names,
@@ -668,29 +669,29 @@ def display_random_images(dataset: torch.utils.data.dataset.Dataset, # or torchv
                       seed=None)
     """
 
-    # 1. Setup the range to select images
+    # Setup the range to select images
     n = min(n, len(dataset))
-    # 2. Adjust display if n too high
+    # Adjust display if n too high
     if n > rows*cols:
         n = rows*cols
         #display_shape = False
         print(f"For display purposes, n shouldn't be larger than {rows*cols}, setting to {n} and removing shape display.")
     
-    # 3. Set random seed
+    # Set random seed
     if seed:
         random.seed(seed)
 
-    # 4. Get random sample indexes
+    # Get random sample indexes
     random_samples_idx = random.sample(range(len(dataset)), k=n)
 
-    # 5. Setup plot
+    # Setup plot
     plt.figure(figsize=(cols*4, rows*4))
 
-    # 6. Loop through samples and display random samples 
+    # Loop through samples and display random samples 
     for i, targ_sample in enumerate(random_samples_idx):
         targ_image, targ_label = dataset[targ_sample][0], dataset[targ_sample][1]
 
-        # 7. Adjust image tensor shape for plotting: [color_channels, height, width] -> [color_channels, height, width]
+        # Adjust image tensor shape for plotting: [color_channels, height, width] -> [color_channels, height, width]
         targ_image_adjust = targ_image.permute(1, 2, 0)
 
         # Plot adjusted samples
