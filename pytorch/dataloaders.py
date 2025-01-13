@@ -5,9 +5,11 @@ image classification data.
 import os
 import random
 import torch
+import numpy as np
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
 from torchvision.transforms import v2
+from collections import defaultdict
 
 NUM_WORKERS = os.cpu_count()
 
@@ -93,6 +95,99 @@ def create_dataloaders(
     return train_dataloader, test_dataloader, class_names
 
 
+def create_dataloaders_with_resampling(
+    train_dir: str,
+    test_dir: str,
+    train_transform: transforms.Compose,
+    test_transform: transforms.Compose,
+    batch_size: int,
+    train_minority_class_samples: int = None,
+    train_majority_class_samples: int = None,
+    test_minority_class_samples: int = None,
+    test_majority_class_samples: int = None,
+    num_workers: int = 0
+):
+    """
+    Creates training and testing DataLoaders with optional class balancing. It works for binary classification
+
+    Args:
+        train_dir (str): Path to the training directory.
+        test_dir (str): Path to the testing directory.
+        train_transform (transforms.Compose): Transformations for training data.
+        test_transform (transforms.Compose): Transformations for test data.
+        batch_size (int): Number of samples per batch in DataLoaders.
+        train_minority_class_samples (int, optional): Target number of samples for minority class in training data.
+        train_majority_class_samples (int, optional): Target number of samples for majority class in training data.
+        test_minority_class_samples (int, optional): Target number of samples for minority class in testing data.
+        test_majority_class_samples (int, optional): Target number of samples for majority class in testing data.
+        num_workers (int): Number of subprocesses for data loading.
+
+    Returns:
+        tuple: train_dataloader, test_dataloader, class_names
+    """
+    # Load datasets
+    train_data = datasets.ImageFolder(train_dir, transform=train_transform)
+    test_data = datasets.ImageFolder(test_dir, transform=test_transform)
+
+    # Get class names
+    class_names = train_data.classes
+
+    def resample_data(data, minority_samples, majority_samples):
+        """Resamples the dataset to balance classes."""
+        class_indices = defaultdict(list)
+        for idx, (_, label) in enumerate(data):
+            class_indices[label].append(idx)
+        
+        sampled_indices = []
+        for label, indices in class_indices.items():
+            if majority_samples and len(indices) > majority_samples:
+                sampled_indices.extend(np.random.choice(indices, majority_samples, replace=False))
+            elif minority_samples and len(indices) < minority_samples:
+                sampled_indices.extend(np.random.choice(indices, minority_samples, replace=True))
+            else:
+                sampled_indices.extend(indices)
+        
+        return torch.utils.data.Subset(data, sampled_indices)
+
+    # Resample train dataset
+    if train_minority_class_samples or train_majority_class_samples:
+        balanced_train_data = resample_data(
+            train_data,
+            minority_samples=train_minority_class_samples,
+            majority_samples=train_majority_class_samples
+        )
+    else:
+        balanced_train_data = train_data
+
+    # Resample test dataset
+    if test_minority_class_samples or test_majority_class_samples:
+        balanced_test_data = resample_data(
+            test_data,
+            minority_samples=test_minority_class_samples,
+            majority_samples=test_majority_class_samples
+        )
+    else:
+        balanced_test_data = test_data
+
+    # Create DataLoaders
+    train_dataloader = DataLoader(
+        balanced_train_data,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    test_dataloader = DataLoader(
+        balanced_test_data,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+
+    return train_dataloader, test_dataloader, class_names
+
+
 def create_dataloaders_for_vit(
         vit_model: str="bitbase16",
         train_dir: str="./",
@@ -129,6 +224,7 @@ def create_dataloaders_for_vit(
 
     IMG_SIZE = 224
     IMG_SIZE_2 = 384
+    IMG_SIZE_3 = 518
 
     # Manual transforms for the training dataset
     manual_transforms = v2.Compose([           
@@ -275,7 +371,7 @@ def create_dataloaders_for_vit(
         )
 
     # ViT-Large/32 transforms
-    else:
+    elif vit_model == "vitlarge32":
         # Manual transforms for the training dataset
         if aug:
             manual_transforms_train_vitl = v2.Compose([    
@@ -301,6 +397,50 @@ def create_dataloaders_for_vit(
         manual_transforms_test_vitl = v2.Compose([    
             v2.Resize((256, 256)),
             v2.CenterCrop((IMG_SIZE, IMG_SIZE)),    
+            v2.ToImage(),
+            v2.ToDtype(torch.float32, scale=True),
+            v2.Normalize(mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225]) 
+        ])
+
+        # Create data loaders for ViT-Large/32
+        train_dataloader, test_dataloader, class_names = create_dataloaders(
+            train_dir=train_dir,
+            test_dir=test_dir,
+            train_transform=manual_transforms_train_vitl,
+            test_transform=manual_transforms_test_vitl,
+            batch_size=batch_size,
+            num_train_samples=num_train_samples,
+            num_test_samples=num_test_samples,
+            num_workers=num_workers
+        )
+    # Vit-Huge/14 transforms
+    else:
+        # Manual transforms for the training dataset
+        if aug:
+            manual_transforms_train_vitl = v2.Compose([    
+                v2.TrivialAugmentWide(),
+                v2.Resize((518, 518)),
+                v2.RandomCrop((IMG_SIZE_3, IMG_SIZE_3)),    
+                v2.ToImage(),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225]) 
+            ])
+        else:
+            manual_transforms_train_vitl = v2.Compose([
+                v2.Resize((518, 518)),
+                v2.CenterCrop((IMG_SIZE_3, IMG_SIZE_3)),
+                v2.ToImage(),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize(mean=[0.485, 0.456, 0.406],
+                            std=[0.229, 0.224, 0.225])
+            ])
+
+        # Manual transforms for the test dataset
+        manual_transforms_test_vitl = v2.Compose([    
+            v2.Resize((518, 518)),
+            v2.CenterCrop((IMG_SIZE_3, IMG_SIZE_3)),    
             v2.ToImage(),
             v2.ToDtype(torch.float32, scale=True),
             v2.Normalize(mean=[0.485, 0.456, 0.406],
