@@ -7,6 +7,7 @@ import os
 import zipfile
 from pathlib import Path
 import requests
+import torchvision
 from typing import List, Dict, Tuple
 import random
 from PIL import Image
