@@ -5,6 +5,7 @@ image classification data.
 import os
 import random
 import torch
+import pandas as pd
 import numpy as np
 from torch.utils.data import DataLoader, Subset
 from torchvision import datasets, transforms
@@ -94,6 +95,47 @@ def create_dataloaders(
 
     return train_dataloader, test_dataloader, class_names
 
+def resample_data(data, labels, samples_0=None, samples_1=None):
+    """
+    Resamples the dataset by specifying the number of samples for class 0 and class 1.
+    
+    Args:
+        data: The dataset (e.g., ImageFolder).
+        labels: The labels corresponding to the dataset.
+        samples_0: The desired number of samples for class 0 (can be None to keep all).
+        samples_1: The desired number of samples for class 1 (can be None to keep all).
+        
+    Returns:
+        A subset of the dataset with the specified number of samples for each class.
+    """
+    # Create a DataFrame for easier indexing
+    df = pd.DataFrame({"index": range(len(labels)), "label": labels})
+    sampled_indices = []
+    
+    # Process class 0
+    indices_0 = df[df["label"] == 0]["index"]
+    if samples_0 is not None:
+        sampled_indices.extend(
+            np.random.choice(indices_0, size=samples_0, replace=(len(indices_0) < samples_0))
+        )
+    else:
+        sampled_indices.extend(indices_0)
+    
+    # Process class 1
+    indices_1 = df[df["label"] == 1]["index"]
+    if samples_1 is not None:
+        sampled_indices.extend(
+            np.random.choice(indices_1, size=samples_1, replace=(len(indices_1) < samples_1))
+        )
+    else:
+        sampled_indices.extend(indices_1)
+    
+    # Shuffle sampled indices for randomness
+    np.random.shuffle(sampled_indices)
+    
+    # Return a subset of the dataset
+    return torch.utils.data.Subset(data, sampled_indices)
+
 
 def create_dataloaders_with_resampling(
     train_dir: str,
@@ -101,14 +143,14 @@ def create_dataloaders_with_resampling(
     train_transform: transforms.Compose,
     test_transform: transforms.Compose,
     batch_size: int,
-    train_minority_class_samples: int = None,
-    train_majority_class_samples: int = None,
-    test_minority_class_samples: int = None,
-    test_majority_class_samples: int = None,
-    num_workers: int = 0
+    train_class_0_samples: int = None,
+    train_class_1_samples: int = None,
+    test_class_0_samples: int = None,
+    test_class_1_samples: int = None,
+    num_workers: int = 0,
 ):
     """
-    Creates training and testing DataLoaders with optional class balancing. It works for binary classification
+    Creates training and testing DataLoaders with optional class balancing. It works for binary classification.
 
     Args:
         train_dir (str): Path to the training directory.
@@ -116,10 +158,10 @@ def create_dataloaders_with_resampling(
         train_transform (transforms.Compose): Transformations for training data.
         test_transform (transforms.Compose): Transformations for test data.
         batch_size (int): Number of samples per batch in DataLoaders.
-        train_minority_class_samples (int, optional): Target number of samples for minority class in training data.
-        train_majority_class_samples (int, optional): Target number of samples for majority class in training data.
-        test_minority_class_samples (int, optional): Target number of samples for minority class in testing data.
-        test_majority_class_samples (int, optional): Target number of samples for majority class in testing data.
+        train_class_0_samples (int, optional): Target number of samples for class 0 in training data.
+        train_class_1_samples (int, optional): Target number of samples for class 1 in training data.
+        test_class_0_samples (int, optional): Target number of samples for class 0 in testing data.
+        test_class_1_samples (int, optional): Target number of samples for class 1 in testing data.
         num_workers (int): Number of subprocesses for data loading.
 
     Returns:
@@ -129,56 +171,27 @@ def create_dataloaders_with_resampling(
     train_data = datasets.ImageFolder(train_dir, transform=train_transform)
     test_data = datasets.ImageFolder(test_dir, transform=test_transform)
 
+    # Extract labels
+    train_labels = train_data.targets
+    test_labels = test_data.targets
+
     # Get class names
     class_names = train_data.classes
 
-    def resample_data(data, minority_samples, majority_samples):
-        """Resamples the dataset to balance classes."""
-        class_indices = defaultdict(list)
-        for idx, (_, label) in enumerate(data):
-            class_indices[label].append(idx)
-        
-        sampled_indices = []
-        for label, indices in class_indices.items():
-            if majority_samples and len(indices) > majority_samples:
-                sampled_indices.extend(np.random.choice(indices, majority_samples, replace=False))
-            elif minority_samples and len(indices) < minority_samples:
-                sampled_indices.extend(np.random.choice(indices, minority_samples, replace=True))
-            else:
-                sampled_indices.extend(indices)
-        
-        return torch.utils.data.Subset(data, sampled_indices)
-
-    # Resample train dataset
-    if train_minority_class_samples or train_majority_class_samples:
-        balanced_train_data = resample_data(
-            train_data,
-            minority_samples=train_minority_class_samples,
-            majority_samples=train_majority_class_samples
-        )
-    else:
-        balanced_train_data = train_data
-
-    # Resample test dataset
-    if test_minority_class_samples or test_majority_class_samples:
-        balanced_test_data = resample_data(
-            test_data,
-            minority_samples=test_minority_class_samples,
-            majority_samples=test_majority_class_samples
-        )
-    else:
-        balanced_test_data = test_data
+    # Resample data
+    train_data_resampled = resample_data(train_data, train_labels, train_class_0_samples, train_class_1_samples)
+    test_data_resampled = resample_data(test_data, test_labels, test_class_0_samples, test_class_1_samples)
 
     # Create DataLoaders
     train_dataloader = DataLoader(
-        balanced_train_data,
+        train_data_resampled,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
         pin_memory=True,
     )
     test_dataloader = DataLoader(
-        balanced_test_data,
+        test_data_resampled,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,

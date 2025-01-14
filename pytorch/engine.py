@@ -668,7 +668,15 @@ def train(model: torch.nn.Module,
             results["test_fpr_at_recall"].append(test_fpr_at_recall)
 
         # Scheduler step after the optimizer
-        scheduler.step() if scheduler else None
+        if scheduler:
+            if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                # Check whether scheduler is configured for "min" or "max"
+                if scheduler.mode == "min":
+                    scheduler.step(test_loss)  # Minimize test_loss
+                elif scheduler.mode == "max":
+                    scheduler.step(test_accuracy)  # Maximize test_accuracy
+            else:
+                scheduler.step()  # For other schedulers
 
         # Plot loss and accuracy curves
         n_plots = 3 if recall_threshold else 2
