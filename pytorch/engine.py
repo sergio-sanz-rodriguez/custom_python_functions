@@ -1008,7 +1008,7 @@ class Trainer:
 
     def __init__(
         self,
-        model: torch.nn.Module,
+        model: torch.nn.Module=None,
         save_best_model: bool=False,
         mode: Union[str, List[str]] = "loss",  # Allow both string and list
         device: str="cuda" if torch.cuda.is_available() else "cpu"
@@ -1021,7 +1021,8 @@ class Trainer:
         Args:
             model (torch.nn.Module): The PyTorch model to handle. Must be instatiated
             save_best_model (bool): Save the best model based on a criterion mode
-            mode: criterion mode for saving the model: "loss" (validation loss), "acc" (validation accuracy), "fpr" (fpr at recall), "all" (all epochs to be saved), or a list. e.g. ["loss", "fpr"]
+            mode: criterion mode for saving the model: "loss" (validation loss), "acc" (validation accuracy), 
+                "fpr" (fpr at recall), "all" (all epochs to be saved), or a list. e.g. ["loss", "fpr"].
             device (str, optional): Device to use ('cuda' or 'cpu'). If None, it defaults to 'cuda' if available.
         """
 
@@ -1050,6 +1051,14 @@ class Trainer:
         self.model_name_loss = None
         self.model_name_acc = None
         self.model_name_fpr = None
+
+        # Check if model is provided
+        if self.model is None:
+            warnings.warn(
+                "[WARNING] No model has been introduced. Only limited functionalities "
+                "will be allowed, such as 'sec_to_min_sec', 'calculate_accuracy', "
+                "'calculate_fpr_at_recall', 'load', and 'create_writer'."
+            )
                 
         # Create empty results dictionary
         self.results = {
@@ -2075,7 +2084,7 @@ class Trainer:
         name , _ = self.model_name.rsplit('.', 1)
         csv_file_name = f"{name}.csv"
         df_results = pd.DataFrame(self.results)
-        df_results.to_csv(os.path.join(target_dir, csv_file_name), index=False)
+        df_results.to_csv(os.path.join(self.target_dir, csv_file_name), index=False)
 
         return df_results
 
