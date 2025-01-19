@@ -1039,7 +1039,6 @@ class Trainer:
         # Initialize self variables
         self.device = device
         self.model = model
-        self.model.to(self.device)
         self.save_best_model = save_best_model
         self.mode = mode
         self.model_best = None
@@ -1056,10 +1055,13 @@ class Trainer:
         if self.model is None:
             warnings.warn(
                 "[WARNING] No model has been introduced. Only limited functionalities "
-                "will be allowed, such as 'sec_to_min_sec', 'calculate_accuracy', "
+                "will be allowed: 'sec_to_min_sec', 'calculate_accuracy', "
                 "'calculate_fpr_at_recall', 'load', and 'create_writer'."
+                "You can later on load the model with 'load'."
             )
-                
+        else:
+            self.model.to(self.device)
+     
         # Create empty results dictionary
         self.results = {
             "epoch": [],
@@ -1196,27 +1198,21 @@ class Trainer:
         print(f"[INFO] Saving model to: {model_save_path}")
         torch.save(obj=model.state_dict(), f=model_save_path)
 
-    @staticmethod
     def load(
-        model: torch.nn.Module,
+        self,
         target_dir: str,
-        model_name: str):
+        model_name: str,
+        return_model: bool=False):
         
-        """Loads a PyTorch model from a target directory.
+        """Loads a PyTorch model from a target directory and optionally returns it.
 
         Args:
-            model: A target PyTorch model to load.
             target_dir: A directory where the model is located.
-            model_name: The name of the model to load.
-            Should include either ".pth" or ".pt" as the file extension.
-
-        Example usage:
-            model = load_model(model=model,
-                            target_dir="models",
-                            model_name="model.pth")
+            model_name: The name of the model to load. Should include ".pth" or ".pt" as the file extension.
+            return_model: Whether to return the loaded model (default: False).
 
         Returns:
-        The loaded PyTorch model.
+            The loaded PyTorch model (if return_model=True).
         """
 
         # Create the model directory path
@@ -1229,9 +1225,10 @@ class Trainer:
         # Load the model
         print(f"[INFO] Loading model from: {model_path}")
         
-        model.load_state_dict(torch.load(model_path, weights_only=True))
+        self.model.load_state_dict(torch.load(model_path, weights_only=True, map_location=self.device))
         
-        return model
+        if return_model:
+            return self.model
     
     @staticmethod
     def create_writer(
