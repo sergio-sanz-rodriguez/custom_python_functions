@@ -23,6 +23,7 @@ from PIL import Image
 from torch import GradScaler, autocast
 from sklearn.metrics import precision_recall_curve, classification_report
 from contextlib import nullcontext
+from sklearn.preprocessing import LabelEncoder
 
 
 def sec_to_min_sec(seconds):
@@ -2020,35 +2021,6 @@ class Trainer:
                         target_dir=self.target_dir,
                         model_name=self.model_name.replace(".", f"_epoch{epoch+1}."))
                     self.model_epoch[epoch].load_state_dict(self.model.state_dict())
-
-#        if self.save_best_model:                
-#            if (self.mode == "loss") and (test_loss < self.best_test_loss):
-#                self.best_test_loss = test_loss
-#                self.save(
-#                    model=self.model,
-#                    target_dir=self.target_dir,
-#                    model_name=self.model_name_best)
-#                self.model_best.load_state_dict(self.model.state_dict())
-#            elif (self.mode == "acc") and (test_acc > self.best_test_acc):
-#                self.best_test_acc = test_acc
-#                self.save(
-#                    model=self.model,
-#                    target_dir=self.target_dir,
-#                    model_name=self.model_name_best)
-#                self.model_best.load_state_dict(self.model.state_dict())
-#            elif (self.mode == "fpr") and (test_fpr_at_recall < self.best_test_fpr_at_recall):
-#                self.best_test_fpr_at_recall = test_fpr_at_recall
-#                self.save(
-#                    model=self.model,
-#                    target_dir=self.target_dir,
-#                    model_name=self.model_name_best)
-#                self.model_best.load_state_dict(self.model.state_dict())
-#            elif self.mode == "all":
-#                self.save(
-#                    model=self.model,
-#                    target_dir=self.target_dir,
-#                    model_name=self.model_name.replace(".", f"_epoch{epoch+1}."))
-#                self.model_epoch[k].load_state_dict(self.model.state_dict())
     
     def finish_train(
         self,
@@ -2454,11 +2426,17 @@ class Trainer:
             y_true.append(class_names.index(class_name))
             y_pred.append(pred_label.cpu().item())
 
+        # Ensure the labels match the class indices
+        label_encoder = LabelEncoder()
+        label_encoder.fit(class_names)
+        labels = label_encoder.transform(class_names)
+
         # Generate the classification report
         classification_report_dict = classification_report(
             y_true=y_true,
             y_pred=y_pred,
             target_names=class_names,
+            labels=labels,
             output_dict=True
             )
 
