@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import copy
 from datetime import datetime
-from typing import Tuple, Dict, Any, List, Union
+from typing import Tuple, Dict, Any, List, Union, Optional
 from tqdm.auto import tqdm 
 from torch.utils.tensorboard import SummaryWriter
 from IPython.display import clear_output
@@ -36,7 +36,7 @@ def save_model(model: torch.nn.Module,
         model: A target PyTorch model to save.
         target_dir: A directory for saving the model to.
         model_name: A filename for the saved model. Should include
-        either ".pth" or ".pt" as the file extension.
+        ".pth", ".pt", ".pkl", ".h5", or ".torch" as the file extension.
 
     Example usage:
         save_model(model=model_0,
@@ -49,9 +49,12 @@ def save_model(model: torch.nn.Module,
     target_dir_path.mkdir(parents=True,
                           exist_ok=True)
 
+    # Define the list of valid extensions
+    valid_extensions = [".pth", ".pt", ".pkl", ".h5", ".torch"]
+
     # Create model save path
-    assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
-    model_save_path = target_dir_path / model_name
+    assert any(model_name.endswith(ext) for ext in valid_extensions), f"model_name should end with one of {valid_extensions}"
+    model_save_path = Path(target_dir) / model_name
 
     # Save the model state_dict()
     print(f"[INFO] Saving best model to: {model_save_path}")
@@ -66,8 +69,8 @@ def load_model(model: torch.nn.Module,
     Args:
         model: A target PyTorch model to load.
         target_dir: A directory where the model is located.
-        model_name: The name of the model to load.
-        Should include either ".pth" or ".pt" as the file extension.
+        model_name: The name of the model to load. Should include
+        ".pth", ".pt", ".pkl", ".h5", or ".torch" as the file extension.
 
     Example usage:
         model = load_model(model=model,
@@ -81,9 +84,12 @@ def load_model(model: torch.nn.Module,
     # Create the model directory path
     model_dir_path = Path(target_dir)
 
-    # Create the model path
-    assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
-    model_path = model_dir_path / model_name
+    # Define the list of valid extensions
+    valid_extensions = [".pth", ".pt", ".pkl", ".h5", ".torch"]
+
+    # Create model save path
+    assert any(model_name.endswith(ext) for ext in valid_extensions), f"model_name should end with one of {valid_extensions}"
+    model_save_path = Path(target_dir) / model_name
 
     # Load the model
     print(f"[INFO] Loading model from: {model_path}")
@@ -104,41 +110,21 @@ class Engine:
 
     Args:
         model (torch.nn.Module, optional): The PyTorch model to handle. Must be instantiated.
-        save_best_model (bool): Whether to save the best model based on a criterion mode.
-        mode (Union[str, List[str]]): Criterion mode for saving the model: 
-            - "loss" (validation loss)
-            - "acc" (validation accuracy)
-            - "fpr" (false positive rate at recall)
-            - "pauc" (partial area under the curve at recall)
-            - "all" (save models for all epochs)
-            - A list, e.g., ["loss", "fpr"], is also allowed. Only applicable if `save_best_model` is True.
         device (str, optional): Device to use ('cuda' or 'cpu'). Defaults to 'cuda' if available, else 'cpu'.
     """
 
     def __init__(
         self,
         model: torch.nn.Module=None,
-        save_best_model: bool=False,
-        mode: Union[str, List[str]] = "loss",  # Allow both string and list
         device: str="cuda" if torch.cuda.is_available() else "cpu"
         ):
         super().__init__()
 
-        # Ensure mode is a list
-        if isinstance(mode, str):
-            mode = [mode]
-
-        # Validate mode
-        valid_mode = {"loss", "acc", "fpr", "pauc", "all"}
-        assert isinstance(mode, list), "[ERROR] mode must be a string or a list of strings."
-        for m in mode:
-            assert m in valid_mode, f"Invalid mode value: {m}. Must be one of {valid_mode}"
-
         # Initialize self variables
         self.device = device
         self.model = model
-        self.save_best_model = save_best_model
-        self.mode = mode
+        self.save_best_model = False
+        self.mode = None
         self.model_best = None
         self.model_epoch = None
         self.optimizer = None
@@ -340,7 +326,7 @@ class Engine:
             model: A target PyTorch model to save.
             target_dir: A directory for saving the model to.
             model_name: A filename for the saved model. Should include
-            either ".pth" or ".pt" as the file extension.
+            ".pth", ".pt", ".pkl", ".h5", or ".torch" as the file extension.
 
         Example usage:
             save(model=model_0,
@@ -353,9 +339,12 @@ class Engine:
         target_dir_path.mkdir(parents=True,
                             exist_ok=True)
 
+        # Define the list of valid extensions
+        valid_extensions = [".pth", ".pt", ".pkl", ".h5", ".torch"]
+
         # Create model save path
-        assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
-        model_save_path = target_dir_path / model_name
+        assert any(model_name.endswith(ext) for ext in valid_extensions), f"model_name should end with one of {valid_extensions}"
+        model_save_path = Path(target_dir) / model_name
 
         # Save the model state_dict()
         print(f"[INFO] Saving model to: {model_save_path}")
@@ -371,19 +360,17 @@ class Engine:
 
         Args:
             target_dir: A directory where the model is located.
-            model_name: The name of the model to load. Should include ".pth" or ".pt" as the file extension.
+            model_name: The name of the model to load. Should include
+            ".pth", ".pt", ".pkl", ".h5", or ".torch" as the file extension.
             return_model: Whether to return the loaded model (default: False).
 
         Returns:
             The loaded PyTorch model (if return_model=True).
         """
 
-        # Create the model directory path
-        model_dir_path = Path(target_dir)
-
         # Create the model path
         assert model_name.endswith(".pth") or model_name.endswith(".pt"), "model_name should end with '.pt' or '.pth'"
-        model_path = model_dir_path / model_name
+        model_path = Path(target_dir) / model_name
 
         # Load the model
         print(f"[INFO] Loading model from: {model_path}")
@@ -457,16 +444,37 @@ class Engine:
         print(f"[INFO] Effective batch size: {batch_size * accumulation_steps}")
         print(f"[INFO] Recall threshold - FPR: {recall_threshold}")
         print(f"[INFO] Recall threshold - pAUC: {recall_threshold_pauc}")
-        print(f"[INFO] Plot curvers: {plot_curves}")
+        print(f"[INFO] Plot curves: {plot_curves}")
         print(f"[INFO] Automatic Mixed Precision (AMP): {amp}")
         print(f"[INFO] Enable clipping: {enable_clipping}")
         print(f"[INFO] Enable writer: {writer}")
-        print("")
+        print(f"[INFO] Target directory: {self.target_dir}")
+        print(f"[INFO] Save model: {self.save_best_model}")
+        if self.save_best_model:
+          # Extract base name and extension from the model name
+            base_name, extension = os.path.splitext(self.model_name)
+            
+            # Print base name and extension
+            print(f"[INFO] Model name base: {base_name}")
+            print(f"[INFO] Model name extension: {extension}")
+            
+            # Iterate over modes and format model name, skipping 'last'
+            for mode in self.mode:
+                if mode == "last" or mode == "all":
+                    # Skip adding 'last' and just use epoch in the filename
+                    model_name_with_mode = f"_epoch<int>{extension}"
+                else:
+                    # For other modes, include mode and epoch in the filename
+                    model_name_with_mode = f"_{mode}_epoch<int>{extension}"
+                
+                # Print the final model save path for each mode
+                print(f"[INFO] Save best model based on {mode}: {base_name + model_name_with_mode}")
 
     def init_train(
         self,
         target_dir: str=None,
         model_name: str=None,
+        save_best_model: Union[str, List[str]] = "last",  # Allow both string and list
         optimizer: torch.optim.Optimizer=None,
         loss_fn: torch.nn.Module=None,
         scheduler: torch.optim.lr_scheduler=None,
@@ -478,54 +486,98 @@ class Engine:
         amp: bool=True,
         enable_clipping: bool=True,
         accumulation_steps: int=1,
-        writer=False #: SummaryWriter=False,
+        writer: Optional[SummaryWriter] = None
     ):
 
         """
         Initializes the training process by setting up the required configurations, parameters, and resources.
 
-        Parameters:
-        - target_dir (str, optional): Directory to save the models. Defaults to "models" if not provided.
-        - model_name (str, optional): Name of the model file to save. Defaults to the class name of the model with ".pth" extension.
-        - optimizer (torch.optim.Optimizer, optional): The optimizer to minimize the loss function.
-        - loss_fn (torch.nn.Module, optional): The loss function to minimize during training.
-        - scheduler (torch.optim.lr_scheduler, optional): Learning rate scheduler for the optimizer.
-        - batch_size (int, optional): Batch size for the training process. Default is 64.
-        - recall_threshold (float, optional): Recall threshold for fpr calculation. Must be a float between 0.0 and 1.0. Default is 0.95.
-        - recall_threshold (float, optional): Recall threshold for pAUC calculation. Must be a float between 0.0 and 1.0. Default is 0.95.
-        - epochs (int, optional): Number of epochs to train. Must be an integer greater than or equal to 1. Default is 30.
-        - plot_curves (bool, optional): Whether to plot training and validation curves. Default is True.
-        - amp (bool, optional): Enable automatic mixed precision for faster training. Default is True.
-        - enable_clipping (bool, optional): Whether to enable gradient clipping. Default is True.
-        - accumulation_steps (int, optional): Steps for gradient accumulation. Must be an integer greater than or equal to 1. Default is 1.
-        - writer (SummaryWriter, optional): TensorBoard SummaryWriter for logging metrics. Default is False.
+        Args:
+            target_dir (str, optional): Directory to save the models. Defaults to "models" if not provided.
+            model_name (str, optional): Name of the model file to save. Defaults to the class name of the model with ".pth" extension.
+            optimizer (torch.optim.Optimizer, optional): The optimizer to minimize the loss function.
+            loss_fn (torch.nn.Module, optional): The loss function to minimize during training.
+            scheduler (torch.optim.lr_scheduler, optional): Learning rate scheduler for the optimizer.
+            batch_size (int, optional): Batch size for the training process. Default is 64.
+            recall_threshold (float, optional): Recall threshold for fpr calculation. Must be a float between 0.0 and 1.0. Default is 0.95.
+            recall_threshold (float, optional): Recall threshold for pAUC calculation. Must be a float between 0.0 and 1.0. Default is 0.95.
+            epochs (int, optional): Number of epochs to train. Must be an integer greater than or equal to 1. Default is 30.
+            plot_curves (bool, optional): Whether to plot training and validation curves. Default is True.
+            amp (bool, optional): Enable automatic mixed precision for faster training. Default is True.
+            enable_clipping (bool, optional): Whether to enable gradient clipping. Default is True.
+            accumulation_steps (int, optional): Steps for gradient accumulation. Must be an integer greater than or equal to 1. Default is 1.
+            save_best_model (Union[str, List[str]]): Criterion mode for saving the model: 
+                - "loss": saves the epoch with the lowest validation loss
+                - "acc": saves the epoch with the highest validation accuracy
+                - "fpr": saves the eopch with the lowsest false positive rate at recall
+                - "pauc": saves the epoch with the highest partial area under the curve at recall
+                - "last": saves last epoch
+                - "all": saves models for all epochs
+                - A list, e.g., ["loss", "fpr"], is also allowed. Only applicable if `save_best_model` is True.
+                - None: the model will not be saved.
+            writer (SummaryWriter, optional): TensorBoard SummaryWriter for logging metrics. Default is False.
 
         Functionality:
-        - Validates `recall_threshold`, `accumulation_steps`, and `epochs` parameters with assertions.
-        - Prints configuration parameters using the `print_config` method.
-        - Initializes the optimizer, loss function, and scheduler.
-        - Ensures the target directory for saving models exists, creating it if necessary.
-        - Sets the model name for saving, defaulting to the model's class name if not provided.
-        - Initializes structures to track the best-performing model and epoch-specific models:
-            - If `self.save_best_model` is enabled and `self.mode` is not "all":
-                - Initializes `self.model_best` for saving the best model during training.
-                - Sets default values for tracking the best test loss, accuracy, and FPR at recall.
-            - If `self.mode` is "all", initializes a list of models (`self.model_epoch`) for saving models at every epoch.
-
+            Validates `recall_threshold`, `accumulation_steps`, and `epochs` parameters with assertions.
+            Prints configuration parameters using the `print_config` method.
+            Initializes the optimizer, loss function, and scheduler.
+            Ensures the target directory for saving models exists, creating it if necessary.
+            Sets the model name for saving, defaulting to the model's class name if not provided.
+            Initializes structures to track the best-performing model and epoch-specific models:
+            
         This method sets up the environment for training, ensuring all necessary resources and parameters are prepared.
         """
+      
+        # Validate recall_threshold
+        if not isinstance(recall_threshold, (int, float)) or not (0.0 <= float(recall_threshold) <= 1.0):
+            raise ValueError("[ERROR] recall_threshold must be a float between 0.0 and 1.0.")
 
-        # Check out recall_threshold
-        assert isinstance(recall_threshold, float) and 0.0 <= recall_threshold <= 1.0, "recall_threshold must be a float between 0.0 and 1.0"
+        # Validate recall_threshold_pauc
+        if not isinstance(recall_threshold_pauc, (int, float)) or not (0.0 <= float(recall_threshold_pauc) <= 1.0):
+            raise ValueError("[ERROR] recall_threshold_pauc must be a float between 0.0 and 1.0.")
 
-        # Check out recall_threshold
-        assert isinstance(recall_threshold_pauc, float) and 0.0 <= recall_threshold_pauc <= 1.0, "recall_threshold_pauc must be a float between 0.0 and 1.0"        
-        
-        # Check out accumulation_steps
-        assert isinstance(accumulation_steps, int) and accumulation_steps >= 1, "accumulation_steps must be an integer greater than or equal to 1"
+        # Validate accumulation_steps
+        if not isinstance(accumulation_steps, int) or accumulation_steps < 1:
+            raise ValueError("[ERROR] accumulation_steps must be an integer greater than or equal to 1.")
 
-        # Check out epochs
-        assert isinstance(epochs, int) and epochs >= 1, "epochs must be an integer greater than or equal to 1"
+        # Validate epochs
+        if not isinstance(epochs, int) or epochs < 1:
+            raise ValueError("[ERROR] epochs must be an integer greater than or equal to 1.")
+
+        # Ensure save_best_model is correctly handled
+        if save_best_model is None:
+            self.save_best_model = False
+            mode = []
+        elif isinstance(save_best_model, (str, list)):
+            self.save_best_model = True
+            mode = [save_best_model] if isinstance(save_best_model, str) else save_best_model  # Ensure mode is a list
+        else:
+            raise ValueError("[ERROR] save_best_model must be None, a string, or a list of strings.")
+
+        # Validate mode only if save_best_model is True
+        valid_modes = {"loss", "acc", "fpr", "pauc", "last", "all"}
+        if self.save_best_model:
+            if not isinstance(mode, list):
+                raise ValueError("[ERROR] mode must be a string or a list of strings.")
+
+            for m in mode:
+                if m not in valid_modes:
+                    raise ValueError(f"[ERROR] Invalid mode value: '{m}'. Must be one of {valid_modes}")
+
+        # Assign the validated mode list
+        self.mode = mode
+
+        # Initialize model name path and ensure target directory exists
+        self.target_dir = target_dir if target_dir is not None else "models"
+        os.makedirs(self.target_dir, exist_ok=True)  
+        self.model_name = model_name if model_name is not None else f"model.pth"
+
+        # List of acceptable extensions
+        valid_extensions = ['.pth', '.pt', '.pkl', '.h5', '.torch']
+
+        # Check if model_name already has a valid extension, otherwise add the default .pth extension
+        if not any(self.model_name.endswith(ext) for ext in valid_extensions):
+            self.model_name += '.pth'
 
         # Print configuration parameters
         self.print_config(
@@ -536,7 +588,7 @@ class Engine:
             plot_curves=plot_curves,
             amp=amp,
             enable_clipping=enable_clipping,
-            accumulation_steps=accumulation_steps,
+            accumulation_steps=accumulation_steps,            
             writer=writer
             )
         
@@ -545,11 +597,6 @@ class Engine:
         self.loss_fn = loss_fn
         self.scheduler = scheduler
     
-        # Initialize model name path and ensure target directory exists
-        self.target_dir = target_dir if target_dir is not None else "models"
-        os.makedirs(self.target_dir, exist_ok=True)  
-        self.model_name = model_name if model_name is not None else f"{self.model.__class__.__name__}.pth"
-
         # Initialize the best model and model_epoch list based on the specified mode.
         if self.save_best_model:
             if self.mode != "all":
@@ -1164,47 +1211,49 @@ class Engine:
     # Updates and saves the best model and model_epoch list based on the specified mode.
     def update_model(
         self,
-        test_loss: float=None,
-        test_acc: float=None,
-        test_fpr: float=None,
-        test_pauc: float=None,
-        epoch: int=None,
+        test_loss: float = None,
+        test_acc: float = None,
+        test_fpr: float = None,
+        test_pauc: float = None,
+        epoch: int = None,
     ) -> pd.DataFrame:
 
         """
         Updates and saves the best model and model_epoch list based on the specified mode(s), as well as the last-epoch model.
 
         Parameters:
-        - test_loss (float, optional): The test loss for the current epoch. Used if the evaluation mode is "loss".
-        - test_acc (float, optional): The test accuracy for the current epoch. Used if the evaluation mode is "acc".
-        - test_fpr (float, optional): The test false positive rate at the specified recall for the current epoch. 
-                                        Used if the evaluation mode is "fpr".
-        - test_pauc (float, optional): The test pAUC at the specified recall for the current epoch.
-                                        Used if the evaluation mode is "pauc".
-        - epoch (int, optional): The current epoch index. Used for naming models when saving all epoch versions in "all" mode.
+        - test_loss (float, optional): Test loss for the current epoch (used in "loss" mode).
+        - test_acc (float, optional): Test accuracy for the current epoch (used in "acc" mode).
+        - test_fpr (float, optional): Test false positive rate at the specified recall (used in "fpr" mode).
+        - test_pauc (float, optional): Test pAUC at the specified recall (used in "pauc" mode).
+        - epoch (int, optional): Current epoch index, used for naming models when saving all epochs in "all" mode.
 
         Functionality:
         - Saves the last-epoch model.
-        - Saves the logs (self.results)
-        - Saves the best-performing model during training based on the specified evaluation mode:
-            - "loss": Updates and saves the model if the test loss decreases.
-            - "acc": Updates and saves the model if the test accuracy increases.
-            - "fpr": Updates and saves the model if the test false positive rate at recall decreases.
-            - "pauc": Upates and saves the model if the pAUC score increases.
-        - If the mode is "all", saves the model for every epoch using a unique name that includes the epoch index.
-        - The evaluation mode can be a list with some of these metrics, e.g. ["loss", "fpr"]
-        - Updates `self.model_best` with the best model's state dictionary if a better model is found.
-        - Updates the `self.model_epoch` list for all saved models in "all" mode.
-
-
-        This function ensures that the best model is saved for recovery and evaluation and that all models 
-        are saved during training when required.
+        - Saves the logs (self.results).
+        - Saves the best-performing model during training based on the specified evaluation mode.
+        - If mode is "all", saves the model for every epoch.
+        - Updates `self.model_best` and `self.model_epoch` accordingly.
 
         Returns:
-            A dataframe of training and testing loss, training and testing accuracy metrics,
-            and training testing fpr. Each metric has a value in a list for 
-            each epoch.
+            A dataframe of training and testing metrics for each epoch.
         """
+
+        if isinstance(self.mode, str):
+            self.mode = [self.mode]  # Ensure self.mode is always a list
+
+        if epoch is None:
+            raise ValueError("[ERROR] epoch must be provided when mode includes 'all' or 'last'.")
+
+        def remove_previous_best(model_name_pattern):
+            """Removes previously saved best model files."""
+            file_to_remove = glob.glob(os.path.join(self.target_dir, model_name_pattern.replace(".", "_epoch*.")))
+            for f in file_to_remove:
+                os.remove(f)
+
+        def save_model(model_name):
+            """Helper function to save the model."""
+            self.save(model=self.model, target_dir=self.target_dir, model_name=model_name.replace(".", f"_epoch{epoch+1}."))
 
         if self.save_best_model:
             for mode in self.mode:
@@ -1212,72 +1261,51 @@ class Engine:
                     if test_loss is None:
                         raise ValueError("[ERROR] test_loss must be provided when mode is 'loss'.")
                     if test_loss < self.best_test_loss:
-                        file_to_remove = glob.glob(os.path.join(self.target_dir, self.model_name_loss.replace(".", "_epoch*.")))
-                        if file_to_remove:
-                            os.remove(file_to_remove[0])
+                        remove_previous_best(self.model_name_loss)
                         self.best_test_loss = test_loss
-                        self.save(
-                            model=self.model,
-                            target_dir=self.target_dir,
-                            model_name=self.model_name_loss.replace(".", f"_epoch{epoch+1}."))
+                        save_model(self.model_name_loss)
+
                 elif mode == "acc":
                     if test_acc is None:
                         raise ValueError("[ERROR] test_acc must be provided when mode is 'acc'.")
                     if test_acc > self.best_test_acc:
-                        file_to_remove = glob.glob(os.path.join(self.target_dir, self.model_name_acc.replace(".", "_epoch*.")))
-                        if file_to_remove:
-                            os.remove(file_to_remove[0])
+                        remove_previous_best(self.model_name_acc)
                         self.best_test_acc = test_acc
-                        self.save(
-                            model=self.model,
-                            target_dir=self.target_dir,
-                            model_name=self.model_name_acc.replace(".", f"_epoch{epoch+1}."))
+                        save_model(self.model_name_acc)
+
                 elif mode == "fpr":
                     if test_fpr is None:
                         raise ValueError("[ERROR] test_fpr must be provided when mode is 'fpr'.")
                     if test_fpr < self.best_test_fpr:
-                        file_to_remove = glob.glob(os.path.join(self.target_dir, self.model_name_fpr.replace(".", "_epoch*.")))
-                        if file_to_remove:
-                            os.remove(file_to_remove[0])
+                        remove_previous_best(self.model_name_fpr)
                         self.best_test_fpr = test_fpr
-                        self.save(
-                            model=self.model,
-                            target_dir=self.target_dir,
-                            model_name=self.model_name_fpr.replace(".", f"_epoch{epoch+1}."))
+                        save_model(self.model_name_fpr)
+
                 elif mode == "pauc":
                     if test_pauc is None:
                         raise ValueError("[ERROR] test_pauc must be provided when mode is 'pauc'.")
                     if test_pauc > self.best_test_pauc:
-                        file_to_remove = glob.glob(os.path.join(self.target_dir, self.model_name_pauc.replace(".", "_epoch*.")))
-                        if file_to_remove:
-                            os.remove(file_to_remove[0])
+                        remove_previous_best(self.model_name_pauc)
                         self.best_test_pauc = test_pauc
-                        self.save(
-                            model=self.model,
-                            target_dir=self.target_dir,
-                            model_name=self.model_name_pauc.replace(".", f"_epoch{epoch+1}."))
-                elif mode == "all":
-                    if epoch is None:
-                        raise ValueError("[ERROR] epoch must be provided when mode is 'all'.")
-                    self.save(
-                        model=self.model,
-                        target_dir=self.target_dir,
-                        model_name=self.model_name.replace(".", f"_epoch{epoch+1}."))
-                    self.model_epoch[epoch].load_state_dict(self.model.state_dict())
-        
-        # Save the actual-epoch model
-        self.save(
-            model=self.model,
-            target_dir=self.target_dir,
-            model_name=self.model_name)
+                        save_model(self.model_name_pauc)
 
-        # Return and save the results
-        name , _ = self.model_name.rsplit('.', 1)
+                elif mode == "last":
+                    remove_previous_best(self.model_name)
+                    save_model(self.model_name)
+
+                elif mode == "all":
+                    save_model(self.model_name)
+                    if isinstance(self.model_epoch, list) and epoch < len(self.model_epoch):
+                        self.model_epoch[epoch].load_state_dict(self.model.state_dict())
+
+        # Save results to CSV
+        name, _ = self.model_name.rsplit('.', 1)
         csv_file_name = f"{name}.csv"
         df_results = pd.DataFrame(self.results)
         df_results.to_csv(os.path.join(self.target_dir, csv_file_name), index=False)
 
         return df_results
+
     
     def finish_train(
         self,
@@ -1302,12 +1330,13 @@ class Engine:
     # Trains and tests a Pytorch model
     def train(
         self,
-        target_dir: str,
-        model_name: str,
-        train_dataloader: torch.utils.data.DataLoader, 
-        test_dataloader: torch.utils.data.DataLoader, 
-        optimizer: torch.optim.Optimizer,
-        loss_fn: torch.nn.Module,
+        target_dir: str=None,
+        model_name: str=None,
+        save_best_model: Union[str, List[str]] = "last",  # Allow both string and list
+        train_dataloader: torch.utils.data.DataLoader=None, 
+        test_dataloader: torch.utils.data.DataLoader=None, 
+        optimizer: torch.optim.Optimizer=None,
+        loss_fn: torch.nn.Module=None,
         recall_threshold: float=0.95,
         recall_threshold_pauc: float=0.95,
         scheduler: torch.optim.lr_scheduler=None,
@@ -1333,7 +1362,15 @@ class Engine:
         Args:
             target_dir: A directory for saving the model to.
             model_name: A filename for the saved model. Should include
-                either ".pth" or ".pt" as the file extension.
+            ".pth", ".pt", ".pkl", ".h5", or ".torch" as the file extension.
+            save_best_model (Union[str, List[str]]): Criterion mode for saving the model: 
+            - "loss" (validation loss)
+            - "acc" (validation accuracy)
+            - "fpr" (false positive rate at recall)
+            - "pauc" (partial area under the curve at recall)
+            - "last" (last epoch)
+            - "all" (save models for all epochs)
+            - A list, e.g., ["loss", "fpr"], is also allowed. Only applicable if `save_best_model` is True.
             train_dataloader: A DataLoader instance for the model to be trained on.
             test_dataloader: A DataLoader instance for the model to be tested on.
             optimizer: A PyTorch optimizer to help minimize the loss function.
@@ -1391,6 +1428,7 @@ class Engine:
         self.init_train(
             target_dir=target_dir,
             model_name=model_name,
+            save_best_model=save_best_model,
             optimizer=optimizer,
             loss_fn=loss_fn,
             scheduler=scheduler,
@@ -1401,7 +1439,8 @@ class Engine:
             plot_curves=plot_curves,
             amp=amp,
             enable_clipping=enable_clipping,
-            accumulation_steps=accumulation_steps
+            accumulation_steps=accumulation_steps,
+            writer=writer
             )
 
         # Loop through training and testing steps for a number of epochs
